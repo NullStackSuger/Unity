@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>12</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="UI\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="SharpVk.Glfw">
+        <HintPath>Window\SharpVk.Glfw.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
