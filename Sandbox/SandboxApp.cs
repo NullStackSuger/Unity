@@ -29,58 +29,5 @@ namespace Sandbox
             Debug.Log($"Test_7 {Marshal.SizeOf<MyStruct_1>()}"); // 说明和文件夹中排序有关?
             Debug.Log($"Test_8 {Marshal.SizeOf<MyStruct_2>()}"); // MyStruct_2是先创建的MyTest_8, 说明和文件创建顺序无关
         }
-
-        private struct MyTest_1 // 12
-        {
-            public byte b; // 1 -> 4
-            public int i; // 4
-            public byte b1; // 1 -> 4
-        }
-
-        private struct MyTest_2 // 8 
-        {
-            public int i; // 4
-            public byte b; // 1
-            public byte b1; // 1
-        }
-
-        private partial struct MyTest_3
-        {
-            public int i;
-        }
-        private partial struct MyTest_3
-        {
-            public byte b;
-        }
-        private partial struct MyTest_3
-        {
-            public byte b1;
-        }
-
-        private partial struct MyTest_4
-        {
-            public byte b;
-        }
-        private partial struct MyTest_4
-        {
-            public int i;
-        }
-        private partial struct MyTest_4
-        {
-            public byte b1;
-        }
-
-        private partial struct MyTest_5
-        {
-            public int i;
-        }
-        private partial struct MyTest_5
-        {
-            public byte b;
-        }
-        private partial struct MyTest_5
-        {
-            public byte b1;
-        }
     }
 }
