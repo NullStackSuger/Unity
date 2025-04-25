@@ -27,15 +27,26 @@ public class RenderSystem
         presentQueue = device.GetQueue(queueFamilies.presentQueue!.Value, 0);
         commandPool = device.CreateCommandPool(queueFamilies.graphicsQueue!.Value, CommandPoolCreateFlags.ResetCommandBuffer);
         commandBuffers = device.AllocateCommandBuffers(commandPool, CommandBufferLevel.Primary, maxFlightCount);
-        (swapChain, colorImages, colorImageViews, colorFormat, depthImages, depthImageViews, depthFormat) = CreateSwapChain(window.Width, window.Height, maxFlightCount, queueFamilies, phyDevice, device, surface, commandPool, graphicsQueue);
+        (swapChain, colorImageViews, colorFormat, depthImageViews, depthFormat) = CreateSwapChain(window.Width, window.Height, maxFlightCount, queueFamilies, phyDevice, device, surface, commandPool, graphicsQueue);
         ShaderModule vertShader = CreateShader(@".\Shaders\vert.spv", device);
         ShaderModule fragShader = CreateShader(@".\Shaders\frag.spv", device);
-        (renderPass, pipeline) = CreatePipeline(window.Width, window.Height, vertShader, fragShader, colorFormat, depthFormat, device);
+        (renderPass, setLayout, pipelineLayout, pipeline) = CreatePipeline(window.Width, window.Height, vertShader, fragShader, colorFormat, depthFormat, device);
         frameBuffers = CreateFrameBuffers(window.Width, window.Height, colorImageViews, depthImageViews, renderPass, device);
         (imageAvailableSemaphores, renderFinishedSemaphores, fences) = CreateSync(maxFlightCount, device); 
         
-        (vertexBuffer, vertexMemory) = CreateBuffer(input, BufferUsageFlags.VertexBuffer, phyDevice, device, commandPool, graphicsQueue);
-        (indexBuffer, indexMemory) = CreateBuffer(indices, BufferUsageFlags.IndexBuffer, phyDevice, device, commandPool, graphicsQueue);
+        vertexBuffer = CreateBuffer(input, BufferUsageFlags.VertexBuffer, phyDevice, device, commandPool, graphicsQueue);
+        indexBuffer = CreateBuffer(indices, BufferUsageFlags.IndexBuffer, phyDevice, device, commandPool, graphicsQueue);
+        uniformBuffer = CreateBuffer(uniform, BufferUsageFlags.UniformBuffer, phyDevice, device, commandPool, graphicsQueue);
+
+        // TODO Uniform
+        (descriptorPool, descriptorSet) = CreateDescriptor(1, new[]
+        {
+            (uniformBuffer, Unsafe.SizeOf<Uniform>(), 0),
+        }, device, setLayout);
+        
+        // 更新顶点输入示例
+        input[0].color = Color.White;
+        vertexBuffer = CreateBuffer(input, vertexBuffer, phyDevice, device, commandPool, graphicsQueue);
     }
 
     private static Instance CreateInstance()
@@ -123,7 +134,7 @@ public class RenderSystem
             QueuePriorities = new[] { 1f }
         }).ToArray(), null, KhrExtensions.Swapchain);
     }
-    private static (Swapchain, Image[], ImageView[], Format, Image[], ImageView[], Format) CreateSwapChain(int width, int height, uint size, QueueFamilyIndices queueFamilies, PhysicalDevice phyDevice, Device device, Surface surface, CommandPool transientCommandPool, Queue transferQueue, Swapchain oldSwapChain = null)
+    private static (Swapchain, ImageView[], Format, ImageView[], Format) CreateSwapChain(int width, int height, uint size, QueueFamilyIndices queueFamilies, PhysicalDevice phyDevice, Device device, Surface surface, CommandPool transientCommandPool, Queue transferQueue, Swapchain oldSwapChain = null)
     {
         SwapChainSupportDetails swapChainSupport = new SwapChainSupportDetails
         {
@@ -201,7 +212,7 @@ public class RenderSystem
             transientCommandPool.FreeCommandBuffers(transferBuffers);
         }
         
-        return (swapChain, colorImages, colorImageViews, surfaceFormat.Format, depthImages, depthImageViews, depthFormat);
+        return (swapChain, colorImageViews, surfaceFormat.Format, depthImageViews, depthFormat);
         
         static SurfaceFormat ChooseSwapSurfaceFormat(SurfaceFormat[] availableFormats)
         {
@@ -290,7 +301,7 @@ public class RenderSystem
         
         return device.CreateShaderModule(fileBytes.Length, shaderData);
     }
-    private static (RenderPass, Pipeline) CreatePipeline(int width, int height, ShaderModule vertShader, ShaderModule fragShader, Format colorFormat, Format depthFormat, Device device)
+    private static (RenderPass, DescriptorSetLayout, PipelineLayout, Pipeline) CreatePipeline(int width, int height, ShaderModule vertShader, ShaderModule fragShader, Format colorFormat, Format depthFormat, Device device)
     {
         #region RenderPass
         var renderPass = device.CreateRenderPass(
@@ -365,15 +376,16 @@ public class RenderSystem
         // Uniform
         var bindings = new DescriptorSetLayoutBinding[]
         {
-
+            Uniform.GetBinding(), // TODO Uniform
         };
         // PushConstant
         var ranges = new PushConstantRange[]
         {
 
         };
-        
-        var pipelineLayout = device.CreatePipelineLayout(device.CreateDescriptorSetLayout(bindings), ranges);
+
+        var setLayout = device.CreateDescriptorSetLayout(bindings);
+        var pipelineLayout = device.CreatePipelineLayout(setLayout, ranges);
         #endregion
         
         #region Pipeline
@@ -466,7 +478,7 @@ public class RenderSystem
             });
         #endregion
 
-        return (renderPass, pipeline);
+        return (renderPass, setLayout, pipelineLayout, pipeline);
     }
     private static Framebuffer[] CreateFrameBuffers(int width, int height, ImageView[] colorImageViews, ImageView[] depthImageView, RenderPass renderPass, Device device)
     {
@@ -490,26 +502,15 @@ public class RenderSystem
         }
         return (imageAvailableSemaphores, renderFinishedSemaphores, fences);
     }
-    private static (Buffer, DeviceMemory) CreateBuffer<T>(T[] array, BufferUsageFlags flag, PhysicalDevice phyDevice, Device device, CommandPool transientCommandPool, Queue transferQueue)
+    private static Buffer CreateBuffer<T>(T[] array, BufferUsageFlags flag, PhysicalDevice phyDevice, Device device, CommandPool commandPool, Queue graphicsQueue)
     {
         int size = Unsafe.SizeOf<T>();
         ulong bufferSize = (ulong)(size * array.Length);
+        
+        var (buffer, _) = CreateBufferInner(bufferSize, BufferUsageFlags.TransferDestination | flag, MemoryPropertyFlags.DeviceLocal, phyDevice, device);
+        buffer = CreateBuffer(array, buffer, phyDevice, device, commandPool, graphicsQueue);
 
-        var (stagingBuffer, stagingBufferMemory) = CreateBufferInner(bufferSize, BufferUsageFlags.TransferSource, MemoryPropertyFlags.HostVisible | MemoryPropertyFlags.HostCoherent, phyDevice, device);
-        IntPtr memoryBuffer = stagingBufferMemory.Map(0, bufferSize, MemoryMapFlags.None);
-        for (int index = 0; index < array.Length; index++)
-        {
-            Marshal.StructureToPtr(array[index], memoryBuffer + (size * index), false);
-        }
-        stagingBufferMemory.Unmap();
-        
-        var (buffer, bufferMemory) = CreateBufferInner(bufferSize, BufferUsageFlags.TransferDestination | flag, MemoryPropertyFlags.DeviceLocal, phyDevice, device);
-        CopyBuffer(bufferSize, stagingBuffer, buffer, device, transientCommandPool, transferQueue);
-        
-        stagingBuffer.Dispose();
-        stagingBufferMemory.Free();
-        
-        return (buffer, bufferMemory);
+        return buffer;
         
         static (Buffer, DeviceMemory) CreateBufferInner(ulong bufferSize, BufferUsageFlags usage, MemoryPropertyFlags properties, PhysicalDevice phyDevice, Device device)
         {
@@ -535,7 +536,51 @@ public class RenderSystem
 
             throw new Exception("No compatible memory type.");
         }
+    }
+    private static Buffer CreateBuffer<T>(T[] src, Buffer dst, PhysicalDevice phyDevice, Device device, CommandPool commandPool, Queue graphicsQueue)
+    {
+        int size = Unsafe.SizeOf<T>();
+        ulong bufferSize = (ulong)(size * src.Length);
         
+        var (stagingBuffer, stagingBufferMemory) = CreateBufferInner(bufferSize, BufferUsageFlags.TransferSource, MemoryPropertyFlags.HostVisible | MemoryPropertyFlags.HostCoherent, phyDevice, device);
+        
+        IntPtr memoryBuffer = stagingBufferMemory.Map(0, bufferSize, MemoryMapFlags.None);
+        for (int index = 0; index < src.Length; index++)
+        {
+            Marshal.StructureToPtr(src[index], memoryBuffer + (size * index), false);
+        }
+        stagingBufferMemory.Unmap();
+        
+        CopyBuffer(bufferSize, stagingBuffer, dst, device, commandPool, graphicsQueue);
+        
+        stagingBuffer.Dispose();
+        stagingBufferMemory.Free();
+
+        return dst;
+        
+        static (Buffer, DeviceMemory) CreateBufferInner(ulong bufferSize, BufferUsageFlags usage, MemoryPropertyFlags properties, PhysicalDevice phyDevice, Device device)
+        {
+            Buffer buffer = device.CreateBuffer(bufferSize, usage, SharingMode.Exclusive, null);
+            var memRequirements = buffer.GetMemoryRequirements();
+            DeviceMemory bufferMemory = device.AllocateMemory(memRequirements.Size, FindMemoryType(memRequirements.MemoryTypeBits, properties, phyDevice));
+            buffer.BindMemory(bufferMemory, 0);
+            return (buffer, bufferMemory);
+        }
+        static uint FindMemoryType(uint typeFilter, MemoryPropertyFlags flags, PhysicalDevice phyDevice)
+        {
+            var memoryProperties = phyDevice.GetMemoryProperties();
+
+            for (int i = 0; i < memoryProperties.MemoryTypes.Length; i++)
+            {
+                if ((typeFilter & (1u << i)) > 0
+                    && memoryProperties.MemoryTypes[i].PropertyFlags.HasFlag(flags))
+                {
+                    return (uint)i;
+                }
+            }
+
+            throw new Exception("No compatible memory type.");
+        }
         static void CopyBuffer(ulong bufferSize, Buffer src, Buffer dst, Device device, CommandPool transientCommandPool, Queue transferQueue)
         {
             var transferBuffers = device.AllocateCommandBuffers(transientCommandPool, CommandBufferLevel.Primary, 1);
@@ -552,7 +597,141 @@ public class RenderSystem
             transientCommandPool.FreeCommandBuffers(transferBuffers);
         }
     }
+    private static Buffer CreateBuffer<T>(T data, BufferUsageFlags flag, PhysicalDevice phyDevice, Device device, CommandPool commandPool, Queue graphicsQueue)
+    {
+        ulong bufferSize = (ulong)Unsafe.SizeOf<T>();
 
+        var (buffer, _) = CreateBufferInner(bufferSize, BufferUsageFlags.TransferDestination | flag, MemoryPropertyFlags.DeviceLocal, phyDevice, device);
+        buffer = CreateBuffer(data, buffer, phyDevice, device, commandPool, graphicsQueue);
+
+        return buffer;
+        
+        static (Buffer, DeviceMemory) CreateBufferInner(ulong bufferSize, BufferUsageFlags usage, MemoryPropertyFlags properties, PhysicalDevice phyDevice, Device device)
+        {
+            Buffer buffer = device.CreateBuffer(bufferSize, usage, SharingMode.Exclusive, null);
+            var memRequirements = buffer.GetMemoryRequirements();
+            DeviceMemory bufferMemory = device.AllocateMemory(memRequirements.Size, FindMemoryType(memRequirements.MemoryTypeBits, properties, phyDevice));
+            buffer.BindMemory(bufferMemory, 0);
+            return (buffer, bufferMemory);
+        }
+        static uint FindMemoryType(uint typeFilter, MemoryPropertyFlags flags, PhysicalDevice phyDevice)
+        {
+            var memoryProperties = phyDevice.GetMemoryProperties();
+
+            for (int i = 0; i < memoryProperties.MemoryTypes.Length; i++)
+            {
+                if ((typeFilter & (1u << i)) > 0
+                    && memoryProperties.MemoryTypes[i].PropertyFlags.HasFlag(flags))
+                {
+                    return (uint)i;
+                }
+            }
+
+            throw new Exception("No compatible memory type.");
+        }
+    }
+    private static Buffer CreateBuffer<T>(T src, Buffer dst, PhysicalDevice phyDevice, Device device, CommandPool commandPool, Queue graphicsQueue)
+    {
+        ulong bufferSize = (ulong)Unsafe.SizeOf<T>();
+        
+        var (stagingBuffer, stagingBufferMemory) = CreateBufferInner(bufferSize, BufferUsageFlags.TransferSource, MemoryPropertyFlags.HostVisible | MemoryPropertyFlags.HostCoherent, phyDevice, device);
+        
+        IntPtr memoryBuffer = stagingBufferMemory.Map(0, bufferSize, MemoryMapFlags.None);
+        Marshal.StructureToPtr(src, memoryBuffer, false);
+        stagingBufferMemory.Unmap();
+        
+        CopyBuffer(bufferSize, stagingBuffer, dst, device, commandPool, graphicsQueue);
+        
+        stagingBuffer.Dispose();
+        stagingBufferMemory.Free();
+
+        return dst;
+        
+        static (Buffer, DeviceMemory) CreateBufferInner(ulong bufferSize, BufferUsageFlags usage, MemoryPropertyFlags properties, PhysicalDevice phyDevice, Device device)
+        {
+            Buffer buffer = device.CreateBuffer(bufferSize, usage, SharingMode.Exclusive, null);
+            var memRequirements = buffer.GetMemoryRequirements();
+            DeviceMemory bufferMemory = device.AllocateMemory(memRequirements.Size, FindMemoryType(memRequirements.MemoryTypeBits, properties, phyDevice));
+            buffer.BindMemory(bufferMemory, 0);
+            return (buffer, bufferMemory);
+        }
+        static uint FindMemoryType(uint typeFilter, MemoryPropertyFlags flags, PhysicalDevice phyDevice)
+        {
+            var memoryProperties = phyDevice.GetMemoryProperties();
+
+            for (int i = 0; i < memoryProperties.MemoryTypes.Length; i++)
+            {
+                if ((typeFilter & (1u << i)) > 0
+                    && memoryProperties.MemoryTypes[i].PropertyFlags.HasFlag(flags))
+                {
+                    return (uint)i;
+                }
+            }
+
+            throw new Exception("No compatible memory type.");
+        }
+        static void CopyBuffer(ulong bufferSize, Buffer src, Buffer dst, Device device, CommandPool transientCommandPool, Queue transferQueue)
+        {
+            var transferBuffers = device.AllocateCommandBuffers(transientCommandPool, CommandBufferLevel.Primary, 1);
+
+            transferBuffers[0].Begin(CommandBufferUsageFlags.OneTimeSubmit);
+
+            transferBuffers[0].CopyBuffer(src, dst, new[] { new BufferCopy { Size = bufferSize } });
+
+            transferBuffers[0].End();
+
+            transferQueue.Submit(new[] { new SubmitInfo { CommandBuffers = transferBuffers } }, null);
+            transferQueue.WaitIdle();
+
+            transientCommandPool.FreeCommandBuffers(transferBuffers);
+        }
+    }
+    private static (DescriptorPool, DescriptorSet) CreateDescriptor(uint uniformCount, (Buffer, int, int)[]  array, Device device, DescriptorSetLayout setLayout)
+    {
+        // Pool
+        DescriptorPoolSize[] descriptorPoolSizes = new[]
+        {
+            new DescriptorPoolSize()
+            {
+                DescriptorCount = uniformCount,
+                Type = DescriptorType.UniformBuffer,
+            }
+        };
+        uint count = 0;
+        foreach (var descriptorPoolSize in descriptorPoolSizes)
+        {
+            count += descriptorPoolSize.DescriptorCount;
+        }
+        var pool = device.CreateDescriptorPool(count, descriptorPoolSizes);
+
+        // Sets
+        DescriptorSet set = device.AllocateDescriptorSets(pool, setLayout)[0];
+
+        // Update
+        for (uint i = 0; i < array.Length; i++)
+        {
+            device.UpdateDescriptorSets(new WriteDescriptorSet()
+            {
+                DescriptorType = DescriptorType.UniformBuffer,
+                DestinationBinding = (uint)array[i].Item3,
+                DestinationSet = set,
+                DestinationArrayElement = 0,
+                DescriptorCount = 1,
+                BufferInfo = new[]
+                {
+                    new DescriptorBufferInfo
+                    {
+                        Buffer = array[i].Item1,
+                        Offset = 0,
+                        Range = (uint)array[i].Item2,
+                    }
+                }
+            }, null);
+        }
+        
+        return (pool, set);
+    }
+    
     public void Render()
     {
         device.WaitForFences(fences[curFrame], true, ulong.MaxValue);
@@ -563,7 +742,7 @@ public class RenderSystem
         var commandBuffer = commandBuffers[curFrame];
         commandBuffer.Reset();
         
-        commandBuffer.Begin(CommandBufferUsageFlags.SimultaneousUse/*OneTimeSubmit*/); // TODO 
+        commandBuffer.Begin(CommandBufferUsageFlags.OneTimeSubmit);
         commandBuffer.BeginRenderPass(this.renderPass,
             this.frameBuffers[nextImage],
             new Rect2D(new Extent2D((uint)window.Width, (uint)window.Height)),
@@ -577,7 +756,8 @@ public class RenderSystem
         commandBuffer.BindPipeline(PipelineBindPoint.Graphics, this.pipeline);
         commandBuffer.BindVertexBuffers(0, new[] { vertexBuffer }, new ulong[] { 0 });
         commandBuffer.BindIndexBuffer(indexBuffer, 0, IndexType.Uint16);
-        commandBuffer.Draw(3, 1, 0, 0);
+        commandBuffer.BindDescriptorSets(PipelineBindPoint.Graphics, pipelineLayout, 0, descriptorSet, null);
+        commandBuffer.DrawIndexed((uint)indices.Length, 1,  0,0, 0);
 
         commandBuffer.EndRenderPass();
         commandBuffer.End();
@@ -606,21 +786,22 @@ public class RenderSystem
     private readonly CommandBuffer[] commandBuffers;
     private readonly Swapchain swapChain;
     private readonly Format colorFormat;
-    private readonly Image[] colorImages;
     private readonly ImageView[] colorImageViews;
     private readonly Format depthFormat;
-    private readonly Image[] depthImages;
     private readonly ImageView[] depthImageViews;
     private readonly RenderPass renderPass;
+    private readonly DescriptorSetLayout setLayout;
+    private readonly PipelineLayout pipelineLayout;
     private readonly Pipeline pipeline;
     private readonly Framebuffer[] frameBuffers;
     private readonly Semaphore[] imageAvailableSemaphores;
     private readonly Semaphore[] renderFinishedSemaphores;
     private readonly Fence[] fences;
     private readonly Buffer vertexBuffer;
-    private readonly DeviceMemory vertexMemory;
     private readonly Buffer indexBuffer;
-    private readonly DeviceMemory indexMemory;
+    private readonly Buffer uniformBuffer;
+    private readonly DescriptorPool descriptorPool;
+    private readonly DescriptorSet descriptorSet;
 
     private uint curFrame = 0;
 
@@ -630,32 +811,43 @@ public class RenderSystem
     {
         new VertexInput()
         {
-            position = new Vector3(0, -0.5f, 0),
-            color = Color.Red,
+            position = new Vector3(-0.5f, -0.5f, 0),
+            color = Color.Green,
             uv = new Vector2(0, 0),
+        },
+        new VertexInput()
+        {
+            position = new Vector3(0.5f, -0.5f, 0),
+            color = Color.Red,
+            uv = new Vector2(1, 0),
         },
         new VertexInput()
         {
             position = new Vector3(0.5f, 0.5f, 0),
-            color = Color.Red,
-            uv = new Vector2(0, 0),
+            color = Color.Blue,
+            uv = new Vector2(1, 1),
         },
         new VertexInput()
         {
-            position = new Vector3(-0.5f, 0.5f, 0),
-            color = Color.Red,
-            uv = new Vector2(0, 0),
-        }
+            position  = new Vector3(-0.5f, 0.5f, 0),
+            color = Color.White,
+            uv = new Vector2(0, 1),
+        },
     };
-
     private readonly ushort[] indices = new ushort[]
     {
-        0, 1, 2,
+        0, 1, 3, 1, 2, 3
     };
-
     private readonly Uniform uniform = new Uniform()
     {
-        
+        view = new Matrix4x4
+        (
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, .5f, 0, 1
+        ),
+        projection = Matrix4x4.Identity,
     };
     
     private struct QueueFamilyIndices

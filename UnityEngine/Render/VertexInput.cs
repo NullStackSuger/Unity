@@ -10,7 +10,7 @@ public partial struct VertexInput
     public Vector3 color;
     public Vector2 uv;
 
-    // TODO 这2个方法应该通过生成器自动生成
+    // TODO VertexInput
     public static VertexInputBindingDescription[] GetBinding()
     {
         return new[]

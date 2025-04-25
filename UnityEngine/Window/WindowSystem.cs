@@ -11,6 +11,7 @@ namespace UnityEngine
         {
             Glfw3.Init();
             Glfw3.WindowHint(WindowAttribute.ClientApi, 0);
+            Glfw3.WindowHint(WindowAttribute.Resizable, 0);
         }
         
         public static bool Tick(Action<Window> callback = null)
