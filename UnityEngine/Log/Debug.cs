@@ -52,7 +52,7 @@ namespace UnityEngine
         }
 
         [Conditional("DEBUG")]
-        public static void Assert(bool b, string message)
+        public static void Assert(bool b, string message = "")
         {
             if (b)
             {
@@ -60,7 +60,7 @@ namespace UnityEngine
             }
         }
 
-        public static void Assert(Func<bool> func, string message)
+        public static void Assert(Func<bool> func, string message = "")
         {
             try
             {

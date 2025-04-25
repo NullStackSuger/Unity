@@ -11,10 +11,14 @@ using Version = SharpVk.Version;
 
 namespace UnityEngine;
 
-public class RenderSystem
+public unsafe class RenderSystem
 {
     public RenderSystem(Window window, uint maxFlightCount = 2)
     {
+        pushConstant.model = Helper.Model(new Vector3(0, 0, 0));
+        uniform.view = Helper.View(new Vector3(0, 0, -2.5f));
+        uniform.projection = Helper.Perspective(Helper.ToRadians(50.0f), (float)window.Width / (float)window.Height, 0.1f, 100.0f);
+        
         this.maxFlightCount = maxFlightCount;
         
         this.window = window;
@@ -381,7 +385,7 @@ public class RenderSystem
         // PushConstant
         var ranges = new PushConstantRange[]
         {
-
+            PushConstant.GetRange(), // 和Uniform不同, 一个Shader可能只有一个PushConstant, 类似VertexInput, 这样写没问题
         };
 
         var setLayout = device.CreateDescriptorSetLayout(bindings);
@@ -757,6 +761,7 @@ public class RenderSystem
         commandBuffer.BindVertexBuffers(0, new[] { vertexBuffer }, new ulong[] { 0 });
         commandBuffer.BindIndexBuffer(indexBuffer, 0, IndexType.Uint16);
         commandBuffer.BindDescriptorSets(PipelineBindPoint.Graphics, pipelineLayout, 0, descriptorSet, null);
+        commandBuffer.PushConstants(pipelineLayout, ShaderStageFlags.Vertex | ShaderStageFlags.Fragment, 0, Helper.VkToBytes(pushConstant));
         commandBuffer.DrawIndexed((uint)indices.Length, 1,  0,0, 0);
 
         commandBuffer.EndRenderPass();
@@ -840,14 +845,12 @@ public class RenderSystem
     };
     private readonly Uniform uniform = new Uniform()
     {
-        view = new Matrix4x4
-        (
-            1, 0, 0, 0,
-            0, 1, 0, 0,
-            0, 0, 1, 0,
-            0, .5f, 0, 1
-        ),
+        view = Matrix4x4.Identity,
         projection = Matrix4x4.Identity,
+    };
+    private readonly PushConstant pushConstant = new PushConstant()
+    {
+        model = Matrix4x4.Identity,
     };
     
     private struct QueueFamilyIndices

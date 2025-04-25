@@ -1,8 +1,10 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SharpVk;
 
 namespace UnityEngine;
 
+[StructLayout(LayoutKind.Sequential)]
 public partial struct Uniform
 {
     public Matrix4x4 view;

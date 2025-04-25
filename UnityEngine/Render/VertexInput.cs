@@ -4,6 +4,7 @@ using SharpVk;
 
 namespace UnityEngine;
 
+// TODO 内存对齐问题
 public partial struct VertexInput
 {
     public Vector3 position;
