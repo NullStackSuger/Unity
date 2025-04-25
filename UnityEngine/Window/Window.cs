@@ -83,14 +83,21 @@ namespace UnityEngine
             });
         }
 
-        public bool Tick()
+        public bool Tick(Action<Window> callback = null)
         {
             bool result = !Glfw3.WindowShouldClose(window);
             if (result)
             {
+                callback?.Invoke(this);
+                
                 Glfw3.PollEvents();
             }
             return result;
+        }
+
+        public static implicit  operator WindowHandle(Window window)
+        {
+            return window.window;
         }
     }
 }

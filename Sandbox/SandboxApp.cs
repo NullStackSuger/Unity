@@ -10,11 +10,12 @@ namespace Sandbox
         
         public static void Main(string[] args)
         {
-            WindowSystem.Create(Width, Height, Title);
-            while (WindowSystem.Tick())
-            {
-                
-            }
+            Window window = WindowSystem.Create(Width, Height, Title);
+            RenderSystem renderSystem = new RenderSystem(window);
+            while (WindowSystem.Tick(_ =>
+                   {
+                       renderSystem.Render(); 
+                   })) { }
         }
     }
 }

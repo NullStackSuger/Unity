@@ -9,18 +9,17 @@ namespace UnityEngine
 
         static WindowSystem()
         {
-            // TODO 注意要把glfw3.dll复制到bin去, 之后要写个自动复制的, 是复制到SanaBox下面
             Glfw3.Init();
             Glfw3.WindowHint(WindowAttribute.ClientApi, 0);
         }
         
-        public static bool Tick()
+        public static bool Tick(Action<Window> callback = null)
         {
             if (windows.Count == 0) return false;
             for (int i = windows.Count - 1; i >= 0; i--)
             {
                 var window = windows[i];
-                if (!window.Tick())
+                if (!window.Tick(callback))
                 {
                     Destroy(window);
                 }

@@ -1,493 +1,695 @@
-/*using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Evergine.Bindings.Vulkan;
-using static GLFWDotNet.GLFW;
+using SharpVk;
+using SharpVk.Glfw;
+using SharpVk.Khronos;
+using SharpVk.Multivendor;
+using Buffer = SharpVk.Buffer;
+using Semaphore = SharpVk.Semaphore;
+using Version = SharpVk.Version;
 
 namespace UnityEngine;
 
-public unsafe class RenderSystem
+public class RenderSystem
 {
-    public RenderSystem(Window window)
+    public RenderSystem(Window window, uint maxFlightCount = 2)
     {
-        const int maxFlightCount = 2;
-        const string vertPath = "";
-        const string fragPath = "";
+        this.maxFlightCount = maxFlightCount;
         
-        CreateInstance(out instance);
-        CreateSurface(window.window, instance, out surface);
-        CreatePhysicalDevice(instance, out phyDevice);
-        QueueFamilyIndices queueFamilyIndices = QueryFamilyIndices(phyDevice, surface);
-        CreateDevice(phyDevice, queueFamilyIndices, out device);
-        GetGraphicsQueue(device, queueFamilyIndices, out graphicsQueue);
-        GetPresentQueue(device, queueFamilyIndices, out presentQueue);
+        this.window = window;
+        instance = CreateInstance();
+        surface = CreateSurface(window, instance);
+        phyDevice = CreatePhysicalDevice(instance, surface);
+        QueueFamilyIndices queueFamilies = FindQueueFamilies(phyDevice, surface);
+        device = CreateDevice(queueFamilies, phyDevice);
+        graphicsQueue = device.GetQueue(queueFamilies.graphicsQueue!.Value, 0);
+        presentQueue = device.GetQueue(queueFamilies.presentQueue!.Value, 0);
+        commandPool = device.CreateCommandPool(queueFamilies.graphicsQueue!.Value, CommandPoolCreateFlags.ResetCommandBuffer);
+        commandBuffers = device.AllocateCommandBuffers(commandPool, CommandBufferLevel.Primary, maxFlightCount);
+        (swapChain, colorImages, colorImageViews, colorFormat, depthImages, depthImageViews, depthFormat) = CreateSwapChain(window.Width, window.Height, maxFlightCount, queueFamilies, phyDevice, device, surface, commandPool, graphicsQueue);
+        ShaderModule vertShader = CreateShader(@".\Shaders\vert.spv", device);
+        ShaderModule fragShader = CreateShader(@".\Shaders\frag.spv", device);
+        (renderPass, pipeline) = CreatePipeline(window.Width, window.Height, vertShader, fragShader, colorFormat, depthFormat, device);
+        frameBuffers = CreateFrameBuffers(window.Width, window.Height, colorImageViews, depthImageViews, renderPass, device);
+        (imageAvailableSemaphores, renderFinishedSemaphores, fences) = CreateSync(maxFlightCount, device); 
         
-        /*instance = CreateInstance();
-        surface = CreateSurface(instance, window!.window);
-        PhysicalDevice phyDevice = CreatePhysicalDevice(instance);
-        QueueFamilyIndices queueFamilyIndices = QueryFamilyIndices(phyDevice, surface);
-        device = CreateDevice(phyDevice, queueFamilyIndices);
-        graphicsQueue = GetGraphicsQueue(device, queueFamilyIndices);
-        presentQueue = GetPresentQueue(device, queueFamilyIndices);
-        commandPool = new CommandPool(device);
-        commandBuffers = commandPool.CreateCommandBuffers(device, maxFlightCount);
-        swapChain = new SwapChain(window!.Width, window.Height, queueFamilyIndices, surface, phyDevice, device, commandPool, graphicsQueue);
-        ShaderModule vertModule = CreateShaderModule(device, vertPath);
-        ShaderModule fragModule = CreateShaderModule(device, fragPath);
-        renderPipeline = new RenderPipeline(window!.Width, window!.Height, vertModule, fragModule, device, swapChain);
-        swapChain.CreateFrameBuffers(window.Width, window.Height, device, renderPipeline.renderPass);
-        imageAvailableSems = CreateSemaphores(device, maxFlightCount);
-        imageDrawFinishSems= CreateSemaphores(device, maxFlightCount);
-        fences = CreateFences(device, maxFlightCount);#1#
+        (vertexBuffer, vertexMemory) = CreateBuffer(input, BufferUsageFlags.VertexBuffer, phyDevice, device, commandPool, graphicsQueue);
+        (indexBuffer, indexMemory) = CreateBuffer(indices, BufferUsageFlags.IndexBuffer, phyDevice, device, commandPool, graphicsQueue);
     }
-
-    private static void CreateInstance(out VkInstance instance)
-    {
-        // Api Version
-        VkApplicationInfo appInfo = new VkApplicationInfo()
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            apiVersion = Version(1, 2, 0),
-        };
-        
-        // Extensions
-        string[] extensions = glfwGetRequiredInstanceExtensions();
-        IntPtr* extensionsToBytesArray = stackalloc IntPtr[extensions.Length];
-        for (int i = 0; i < extensions.Length; i++)
-        {
-            extensionsToBytesArray[i] = Marshal.StringToHGlobalAnsi(extensions[i]);
-        }
-
-        VkInstanceCreateInfo createInfo = new VkInstanceCreateInfo
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            pApplicationInfo = &appInfo,
-            enabledExtensionCount = (uint)extensions.Length,
-            ppEnabledExtensionNames = (byte**)extensionsToBytesArray,
-        };
-
-        // Validation layers
-        if (Define.IsDebug)
-        {
-            string[] validationLayers = new[] { "VK_LAYER_KHRONOS_validation" };
-            IntPtr* layersToBytesArray = stackalloc IntPtr[validationLayers.Length];
-            for (int i = 0; i < validationLayers.Length; i++)
-            {
-                layersToBytesArray[i] = Marshal.StringToHGlobalAnsi(validationLayers[i]);
-            }
-            createInfo.enabledLayerCount = (uint)validationLayers.Length;
-            createInfo.ppEnabledLayerNames = (byte**)layersToBytesArray;
-        }
-        else
-        {
-            createInfo.enabledLayerCount = 0;
-            createInfo.pNext = null;
-        }
-        
-        fixed (VkInstance* instancePtr = &instance)
-        {
-            RenderHelper.CheckErrors(VulkanNative.vkCreateInstance(&createInfo, null, instancePtr));
-        }
-        
-        static uint Version(uint major, uint minor, uint patch)
-        {
-            return (major << 22) | (minor << 12) | patch;
-        }
-    }
-    
-    private readonly VkInstance instance;
-
-    private static void CreateSurface(IntPtr window, VkInstance instance, out VkSurfaceKHR surface)
-    {
-        VkWin32SurfaceCreateInfoKHR createInfo = new VkWin32SurfaceCreateInfoKHR()
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-            hwnd = window,
-            hinstance = Process.GetCurrentProcess().Handle,
-        };
-        
-        fixed (VkSurfaceKHR* surfacePtr = &surface)
-        {
-            RenderHelper.CheckErrors(VulkanNative.vkCreateWin32SurfaceKHR(instance, &createInfo, null, surfacePtr));
-        }
-    }
-    
-    private readonly VkSurfaceKHR surface;
-    
-    private static void CreatePhysicalDevice(VkInstance instance, out VkPhysicalDevice phyDevice)
-    {
-        uint deviceCount = 0;
-        RenderHelper.CheckErrors(VulkanNative.vkEnumeratePhysicalDevices(instance, &deviceCount, null));
-        if (deviceCount == 0)
-        {
-            Debug.Error("Failed to find GPUs with Vulkan support!");
-        }
-
-        VkPhysicalDevice* devices = stackalloc VkPhysicalDevice[(int)deviceCount];
-        RenderHelper.CheckErrors(VulkanNative.vkEnumeratePhysicalDevices(instance, &deviceCount, devices));
-
-        phyDevice = devices[0];
-        if (phyDevice == default)
-        {
-            Debug.Error("failed to find a suitable GPU!");
-        }
-    }
-
-    private readonly VkPhysicalDevice phyDevice;
-    
-    private static QueueFamilyIndices QueryFamilyIndices(VkPhysicalDevice phyDevice, VkSurfaceKHR surface)
-    {
-        QueueFamilyIndices indices = new QueueFamilyIndices();
-        uint queueFamilyCount = 0;
-        VulkanNative.vkGetPhysicalDeviceQueueFamilyProperties(phyDevice, &queueFamilyCount, null);
-        VkQueueFamilyProperties* properties = stackalloc VkQueueFamilyProperties[(int)queueFamilyCount];
-        VulkanNative.vkGetPhysicalDeviceQueueFamilyProperties(phyDevice, &queueFamilyCount, properties);
-
-        for (uint i = 0; i < queueFamilyCount; i++)
-        {
-            var prop = properties[i];
-            
-            if ((prop.queueFlags & VkQueueFlags.VK_QUEUE_GRAPHICS_BIT) != 0)
-            {
-                indices.graphicsQueue = i;
-            }
-            
-            VkBool32 presentSupport = false;
-            RenderHelper.CheckErrors(VulkanNative.vkGetPhysicalDeviceSurfaceSupportKHR(phyDevice, i, surface, &presentSupport));
-            if (presentSupport)
-            {
-                indices.presentQueue = i;
-            }
-            
-            if (indices.HasValue()) break;
-        }
-        return indices;
-    }
-
-    private static void CreateDevice(VkPhysicalDevice phyDevice, QueueFamilyIndices indices, out VkDevice device)
-    {
-        List<VkDeviceQueueCreateInfo> queueInfos = new();
-        float priority = 1.0f;
-        // 用HashSet使得2个Queue相同时只添加一个
-        foreach (uint queueFamily in new HashSet<uint>() { indices.graphicsQueue!.Value, indices.presentQueue!.Value })
-        {
-            queueInfos.Add(new VkDeviceQueueCreateInfo()
-            {
-                sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                queueFamilyIndex = queueFamily,
-                queueCount = 1,
-                pQueuePriorities = &priority,
-            });
-        }
-
-        VkPhysicalDeviceFeatures deviceFeatures = default;
-        string[] deviceExtensions = new[] { "VK_KHR_swapchain" };
-        IntPtr* deviceExtensionsArray = stackalloc IntPtr[deviceExtensions.Length];
-        for (int i = 0; i < deviceExtensions.Length; i++)
-        {
-            string extension = deviceExtensions[i];
-            deviceExtensionsArray[i] = Marshal.StringToHGlobalAnsi(extension);
-        }
-        VkDeviceCreateInfo createInfo = new VkDeviceCreateInfo()
-        {
-            sType = VkStructureType.VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            pEnabledFeatures = &deviceFeatures,
-            enabledExtensionCount = (uint)deviceExtensions.Length,
-            ppEnabledExtensionNames = (byte**)deviceExtensionsArray,
-        };
-        fixed (VkDeviceQueueCreateInfo* queueCreateInfosArrayPtr = &queueInfos.ToArray()[0])
-        {
-            createInfo.queueCreateInfoCount = (uint)queueInfos.Count;
-            createInfo.pQueueCreateInfos = queueCreateInfosArrayPtr;
-        }
-        
-        fixed (VkDevice* devicePtr = &device)
-        {
-            RenderHelper.CheckErrors(VulkanNative.vkCreateDevice(phyDevice, &createInfo, null, devicePtr));
-        }
-    }
-    
-    private readonly VkDevice device;
-    
-    private static void GetGraphicsQueue(VkDevice device, QueueFamilyIndices indices, out VkQueue graphicsQueue)
-    {
-        fixed (VkQueue* graphicsQueuePtr = &graphicsQueue)
-        {
-            VulkanNative.vkGetDeviceQueue(device, indices.graphicsQueue!.Value, 0, graphicsQueuePtr);
-        }
-    }
-    
-    private readonly VkQueue graphicsQueue;
-
-    private static void GetPresentQueue(VkDevice device, QueueFamilyIndices indices, out VkQueue presentQueue)
-    {
-        fixed (VkQueue* presentQueuePtr = &presentQueue)
-        {
-            VulkanNative.vkGetDeviceQueue(device, indices.presentQueue!.Value, 0, presentQueuePtr);
-        }
-    }
-
-    private readonly VkQueue presentQueue;
-
-    /*#region Create Function
 
     private static Instance CreateInstance()
     {
-        Instance instance = new Instance (new InstanceCreateInfo()
-        {
-            ApplicationInfo = new ApplicationInfo
+        Instance instance = Instance.Create(
+            new[] { "VK_LAYER_KHRONOS_validation" },
+            Glfw3.GetRequiredInstanceExtensions().Append(ExtExtensions.DebugReport).ToArray(),
+            applicationInfo: new ApplicationInfo
             {
-                ApiVersion = Vulkan.Version.Make (1, 3, 0)
-            },
-            EnabledLayerNames = new string[] { "VK_LAYER_KHRONOS_validation" },
-            EnabledExtensionNames = Glfw.GetRequiredInstanceExtensions(),
-        });
+                ApplicationVersion = new Version(1, 0, 0),
+                EngineVersion = new Version(1, 0, 0),
+                ApiVersion = new Version(1, 0, 0)
+            });
 
+        if (Define.IsDebug)
+        {
+            instance.CreateDebugReportCallback((flags, _, _, _, _, _, message, _) =>
+            {
+                switch (flags)
+                {
+                    case DebugReportFlags.Debug:
+                        Debug.Log(message);
+                        break;
+                    case DebugReportFlags.Warning:
+                        Debug.Warning(message);
+                        break;
+                    case DebugReportFlags.Error:
+                        Debug.Error(message);
+                        break;
+                    default:
+                        Debug.Warning(message);
+                        break;
+                }
+                return false;
+            }, DebugReportFlags.Error | DebugReportFlags.Warning);
+        }
+        
         return instance;
     }
-
-    private static SurfaceKhr CreateSurface(Instance instance, IntPtr window)
+    private static Surface CreateSurface(Window window, Instance instance)
     {
-        int result = glfwCreateWindowSurface(((IMarshalling)instance).Handle, window, IntPtr.Zero, out var pSurface);
-        if (result != (int)Result.Success)
-        {
-            //throw new ResultException((Result)result);
-            Debug.Error(result);
-        }
-
-        return new SurfaceKhr() { Handle = (ulong)pSurface.ToInt64() };
-
-        /*long surface = 0;
-        VkResult result = Glfw.CreateWindowSurface(instance.Handle, window.__Instance, IntPtr.Zero, surface);
-        if (result != VkResult.VK_SUCCESS)
-        {
-            Debug.Error("CreateSurface failed");
-        }
-        return new SurfaceKhr() { Handle = (ulong)surface };#2#
+        return instance.CreateGlfw3Surface(window);
     }
-
-    private static PhysicalDevice CreatePhysicalDevice(Instance instance)
+    private static PhysicalDevice CreatePhysicalDevice(Instance instance, Surface surface)
     {
-        return instance.EnumeratePhysicalDevices()[0];
+        PhysicalDevice[] availableDevices = instance.EnumeratePhysicalDevices();
+        return availableDevices.First(phyDevice => IsSuitableDevice(phyDevice, surface));
+        
+        static bool IsSuitableDevice(PhysicalDevice phyDevice, Surface surface)
+        {
+            return phyDevice.EnumerateDeviceExtensionProperties(null).Any(extension => extension.ExtensionName == "VK_KHR_swapchain")
+                   && FindQueueFamilies(phyDevice, surface);
+        }
     }
-
-    private static QueueFamilyIndices QueryFamilyIndices(PhysicalDevice phyDevice, SurfaceKhr surface)
+    private static QueueFamilyIndices FindQueueFamilies(PhysicalDevice phyDevice, Surface surface)
     {
         QueueFamilyIndices indices = new QueueFamilyIndices();
-        var properties = phyDevice.GetQueueFamilyProperties();
-        for (uint i = 0; i < properties.Length; i++)
+        var queueFamilies = phyDevice.GetQueueFamilyProperties();
+        for (uint i = 0; i < queueFamilies.Length; ++i)
         {
-            var prop = properties[i];
-            if (prop.QueueFlags == QueueFlags.Graphics)
+            if (queueFamilies[i].QueueFlags.HasFlag(QueueFlags.Graphics))
             {
                 indices.graphicsQueue = i;
             }
-            if (phyDevice.GetSurfaceSupportKHR(i, surface))
+
+            if (phyDevice.GetSurfaceSupport(i, surface))
             {
                 indices.presentQueue = i;
             }
-            if (indices.HasValue()) break;
+
+            if (indices) break;
+        }
+
+        if (!indices)
+        {
+            Debug.Error($"QueueFamilyIndices does not exist (Graphics:{indices.graphicsQueue.HasValue}, Present:{indices.presentQueue.HasValue} Transfer:{indices.presentQueue.HasValue})");
         }
         return indices;
     }
-
-    private static Device CreateDevice(PhysicalDevice phyDevice, QueueFamilyIndices queueFamilyIndices)
+    private static Device CreateDevice(QueueFamilyIndices queueFamilies, PhysicalDevice phyDevice)
     {
-        List<DeviceQueueCreateInfo> queueInfo = new();
-
-        // 如果2个队列相同, 只需要创建一份
-        if (queueFamilyIndices.presentQueue == queueFamilyIndices.graphicsQueue)
+        return phyDevice.CreateDevice(queueFamilies.Indices.Select(index => new DeviceQueueCreateInfo
         {
-            queueInfo.Add(new()
+            QueueFamilyIndex = index,
+            QueuePriorities = new[] { 1f }
+        }).ToArray(), null, KhrExtensions.Swapchain);
+    }
+    private static (Swapchain, Image[], ImageView[], Format, Image[], ImageView[], Format) CreateSwapChain(int width, int height, uint size, QueueFamilyIndices queueFamilies, PhysicalDevice phyDevice, Device device, Surface surface, CommandPool transientCommandPool, Queue transferQueue, Swapchain oldSwapChain = null)
+    {
+        SwapChainSupportDetails swapChainSupport = new SwapChainSupportDetails
+        {
+            Capabilities = phyDevice.GetSurfaceCapabilities(surface),
+            Formats = phyDevice.GetSurfaceFormats(surface),
+            PresentModes = phyDevice.GetSurfacePresentModes(surface)
+        };
+        uint imageCount = Math.Clamp(size, swapChainSupport.Capabilities.MinImageCount, swapChainSupport.Capabilities.MaxImageCount);
+        SurfaceFormat surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.Formats);
+        var indices = queueFamilies.Indices.ToArray();
+        Extent2D extent = ChooseSwapExtent(width, height, swapChainSupport.Capabilities);
+        Format depthFormat = ChooseDepthFormat(phyDevice);
+        
+        Swapchain swapChain = device.CreateSwapchain(
+            surface, imageCount, surfaceFormat.Format, surfaceFormat.ColorSpace, extent, 1, 
+            ImageUsageFlags.ColorAttachment, indices.Length == 1 ? SharingMode.Exclusive : SharingMode.Concurrent, 
+            indices, swapChainSupport.Capabilities.CurrentTransform, CompositeAlphaFlags.Opaque, 
+            ChooseSwapPresentMode(swapChainSupport.PresentModes), true, oldSwapChain);
+        
+        // Color
+        Image[] colorImages = swapChain.GetImages();
+        ImageView[] colorImageViews = colorImages.Select(image => device.CreateImageView(image, ImageViewType.ImageView2d, surfaceFormat.Format, ComponentMapping.Identity, new ImageSubresourceRange(ImageAspectFlags.Color, 0, 1, 0, 1))).ToArray();
+
+        Image[] depthImages = new Image[imageCount];
+        ImageView[] depthImageViews = new ImageView[imageCount];
+        DeviceMemory[] depthMemories = new DeviceMemory[imageCount];
+        for (int i = 0; i < imageCount; i++)
+        {
+            // Image
+            depthImages[i] = device.CreateImage(
+                ImageType.Image2d, depthFormat, new Extent3D(extent.Width, extent.Height, 1), 
+                1, 1, SampleCountFlags.SampleCount1, ImageTiling.Optimal, 
+                ImageUsageFlags.DepthStencilAttachment, SharingMode.Exclusive, indices, ImageLayout.Undefined);
+            
+            // Memory
+            var memReq = depthImages[i].GetMemoryRequirements();
+            depthMemories[i] = device.AllocateMemory(memReq.Size, FindMemoryType(memReq.MemoryTypeBits, MemoryPropertyFlags.DeviceLocal, phyDevice));
+            depthImages[i].BindMemory(depthMemories[i], 0);
+            
+            // ImageView
+            depthImageViews[i] = device.CreateImageView(
+                depthImages[i], ImageViewType.ImageView2d, depthFormat, new ComponentMapping(), 
+                new ImageSubresourceRange(ImageAspectFlags.Depth, 0, 1, 0, 1));
+            
+            // 转换图像布局
+            // 前面创建Image时的ImageLayout只有在"跨队列共享模式(用不到)"才有用, 所以我们需要自己去设置布局(ImageLayout)
+            var transferBuffers = device.AllocateCommandBuffers(transientCommandPool, CommandBufferLevel.Primary, 1);
+            transferBuffers[0].Begin(CommandBufferUsageFlags.OneTimeSubmit);
+
+            ImageMemoryBarrier barrier = new()
             {
-                QueuePriorities = new float[] { 1 },
-                QueueCount = 1,
-                QueueFamilyIndex = queueFamilyIndices.graphicsQueue!.Value
-            });
+                Image = depthImages[i],
+                OldLayout = ImageLayout.Undefined,
+                NewLayout = ImageLayout.DepthStencilAttachmentOptimal,
+                SourceQueueFamilyIndex = Constants.QueueFamilyIgnored,
+                DestinationQueueFamilyIndex = Constants.QueueFamilyIgnored,
+                SourceAccessMask = AccessFlags.None,
+                DestinationAccessMask = AccessFlags.DepthStencilAttachmentWrite,
+                SubresourceRange = new ImageSubresourceRange()
+                {
+                    LayerCount = 1,
+                    BaseArrayLayer = 0,
+                    LevelCount = 1,
+                    BaseMipLevel = 0,
+                    AspectMask = ImageAspectFlags.Depth,
+                }
+            };
+            PipelineStageFlags srcStage = PipelineStageFlags.TopOfPipe;
+            PipelineStageFlags dstStage = PipelineStageFlags.EarlyFragmentTests;
+            transferBuffers[0].PipelineBarrier(srcStage, dstStage, null, null, barrier);
+
+            transferBuffers[0].End();
+            transferQueue.Submit(new[] { new SubmitInfo { CommandBuffers = transferBuffers } }, null);
+            transferQueue.WaitIdle();
+            transientCommandPool.FreeCommandBuffers(transferBuffers);
         }
-        else
+        
+        return (swapChain, colorImages, colorImageViews, surfaceFormat.Format, depthImages, depthImageViews, depthFormat);
+        
+        static SurfaceFormat ChooseSwapSurfaceFormat(SurfaceFormat[] availableFormats)
         {
-            queueInfo.Add(new()
+            if (availableFormats.Length == 1 && availableFormats[0].Format == Format.Undefined)
             {
-                QueuePriorities = new float[] { 1 },
-                QueueCount = 1,
-                QueueFamilyIndex = queueFamilyIndices.graphicsQueue!.Value
-            });
-            queueInfo.Add(new()
+                return new SurfaceFormat
+                {
+                    Format = Format.B8G8R8A8UNorm,
+                    ColorSpace = ColorSpace.SrgbNonlinear
+                };
+            }
+
+            foreach (var format in availableFormats)
             {
-                QueuePriorities = new float[] { 1 },
-                QueueCount = 1,
-                QueueFamilyIndex = queueFamilyIndices.presentQueue!.Value
+                if (format.Format == Format.B8G8R8A8Srgb && format.ColorSpace == ColorSpace.SrgbNonlinear)
+                {
+                    return format;
+                }
+            }
+
+            return availableFormats[0];
+        }
+        static Extent2D ChooseSwapExtent(int width, int height, SurfaceCapabilities capabilities)
+        {
+            if (capabilities.CurrentExtent.Width != uint.MaxValue)
+            {
+                return capabilities.CurrentExtent;
+            }
+            else
+            {
+                return new Extent2D
+                {
+                    Width = Math.Max(capabilities.MinImageExtent.Width, Math.Min(capabilities.MaxImageExtent.Width, (uint)width)),
+                    Height = Math.Max(capabilities.MinImageExtent.Height, Math.Min(capabilities.MaxImageExtent.Height, (uint)height))
+                };
+            }
+        }
+        static PresentMode ChooseSwapPresentMode(PresentMode[] availablePresentModes)
+        {
+            return availablePresentModes.Contains(PresentMode.Mailbox)
+                ? PresentMode.Mailbox
+                : PresentMode.Fifo;
+        }
+        static Format ChooseDepthFormat(PhysicalDevice phyDevice)
+        {
+            Format format = Format.Undefined;
+            Format[] depthFormats = new[]
+            {
+                Format.D32SFloat,
+                Format.D32SFloatS8UInt,
+                Format.D24UNormS8UInt,
+            };
+            foreach (var depthFormat in depthFormats)
+            {
+                var props = phyDevice.GetFormatProperties(depthFormat);
+                if (props.OptimalTilingFeatures.HasFlag(FormatFeatureFlags.DepthStencilAttachment))
+                {
+                    format = depthFormat;
+                    break;
+                }
+            }
+            return format;
+        }
+        static uint FindMemoryType(uint typeFilter, MemoryPropertyFlags flags, PhysicalDevice phyDevice)
+        {
+            var memoryProperties = phyDevice.GetMemoryProperties();
+
+            for (int i = 0; i < memoryProperties.MemoryTypes.Length; i++)
+            {
+                if ((typeFilter & (1u << i)) > 0
+                    && memoryProperties.MemoryTypes[i].PropertyFlags.HasFlag(flags))
+                {
+                    return (uint)i;
+                }
+            }
+
+            throw new Exception("No compatible memory type.");
+        }
+    }
+    private static ShaderModule CreateShader(string path, Device device)
+    {
+        var fileBytes = File.ReadAllBytes(path);
+        var shaderData = new uint[(int)Math.Ceiling(fileBytes.Length / 4f)];
+
+        System.Buffer.BlockCopy(fileBytes, 0, shaderData, 0, fileBytes.Length);
+        
+        return device.CreateShaderModule(fileBytes.Length, shaderData);
+    }
+    private static (RenderPass, Pipeline) CreatePipeline(int width, int height, ShaderModule vertShader, ShaderModule fragShader, Format colorFormat, Format depthFormat, Device device)
+    {
+        #region RenderPass
+        var renderPass = device.CreateRenderPass(
+            new AttachmentDescription[]
+            {
+                // Color
+                new AttachmentDescription()
+                {
+                    Format = colorFormat,
+                    Samples = SampleCountFlags.SampleCount1,
+                    LoadOp = AttachmentLoadOp.Clear,
+                    StoreOp = AttachmentStoreOp.Store,
+                    StencilLoadOp = AttachmentLoadOp.DontCare,
+                    StencilStoreOp = AttachmentStoreOp.DontCare,
+                    InitialLayout = ImageLayout.Undefined,
+                    FinalLayout = ImageLayout.PresentSource
+                },
+                // Depth
+                new AttachmentDescription()
+                {
+                    Format = depthFormat,
+                    Samples = SampleCountFlags.SampleCount1,
+                    LoadOp = AttachmentLoadOp.Clear,
+                    StoreOp = AttachmentStoreOp.DontCare,
+                    StencilLoadOp = AttachmentLoadOp.DontCare,
+                    StencilStoreOp = AttachmentStoreOp.DontCare,
+                    InitialLayout = ImageLayout.Undefined,
+                    FinalLayout = ImageLayout.DepthStencilAttachmentOptimal,
+                },
+            },
+            new SubpassDescription()
+            {
+                PipelineBindPoint = PipelineBindPoint.Graphics,
+                ColorAttachments = new[]
+                {
+                    new AttachmentReference
+                    {
+                        Attachment = 0,
+                        Layout = ImageLayout.ColorAttachmentOptimal
+                    }
+                },
+                DepthStencilAttachment = new AttachmentReference
+                {
+                    Attachment = 1,
+                    Layout = ImageLayout.DepthStencilAttachmentOptimal,
+                },
+            },
+            new[]
+            {
+                new SubpassDependency()
+                {
+                    SourceSubpass = Constants.SubpassExternal,
+                    DestinationSubpass = 0,
+                    SourceAccessMask = AccessFlags.MemoryRead,
+                    DestinationAccessMask = AccessFlags.ColorAttachmentWrite | AccessFlags.DepthStencilAttachmentWrite,
+                    SourceStageMask = PipelineStageFlags.BottomOfPipe,
+                    DestinationStageMask = PipelineStageFlags.ColorAttachmentOutput | PipelineStageFlags.EarlyFragmentTests,
+                },
+                new SubpassDependency()
+                {
+                    SourceSubpass = 0,
+                    DestinationSubpass = Constants.SubpassExternal,
+                    SourceAccessMask = AccessFlags.ColorAttachmentWrite | AccessFlags.DepthStencilAttachmentWrite,
+                    DestinationAccessMask = AccessFlags.MemoryRead,
+                    SourceStageMask = PipelineStageFlags.ColorAttachmentOutput | PipelineStageFlags.EarlyFragmentTests,
+                    DestinationStageMask = PipelineStageFlags.BottomOfPipe,
+                }
             });
+        #endregion
+
+        #region PipelineLayout
+        // Uniform
+        var bindings = new DescriptorSetLayoutBinding[]
+        {
+
+        };
+        // PushConstant
+        var ranges = new PushConstantRange[]
+        {
+
+        };
+        
+        var pipelineLayout = device.CreatePipelineLayout(device.CreateDescriptorSetLayout(bindings), ranges);
+        #endregion
+        
+        #region Pipeline
+        var pipeline = device.CreateGraphicsPipeline(null,
+            new[]
+            {
+                new PipelineShaderStageCreateInfo
+                {
+                    Stage = ShaderStageFlags.Vertex,
+                    Module = vertShader,
+                    Name = "main"
+                },
+                new PipelineShaderStageCreateInfo
+                {
+                    Stage = ShaderStageFlags.Fragment,
+                    Module = fragShader,
+                    Name = "main"
+                }
+            },
+            new PipelineRasterizationStateCreateInfo
+            {
+                RasterizerDiscardEnable = false,
+                PolygonMode = PolygonMode.Fill,
+                LineWidth = 1,
+                CullMode = CullModeFlags.Back,
+                FrontFace = FrontFace.Clockwise,
+                DepthBiasEnable = false,
+            },
+            pipelineLayout,
+            renderPass,
+            0,
+            null,
+            -1,
+            vertexInputState: new PipelineVertexInputStateCreateInfo()
+            {
+                VertexBindingDescriptions = VertexInput.GetBinding(),
+                VertexAttributeDescriptions = VertexInput.GetAttributes(),
+            },
+            inputAssemblyState: new PipelineInputAssemblyStateCreateInfo
+            {
+                PrimitiveRestartEnable = false,
+                Topology = PrimitiveTopology.TriangleList
+            },
+            viewportState: new PipelineViewportStateCreateInfo
+            {
+                Viewports = new[]
+                {
+                    new Viewport(0f, 0f, width, height, 0, 1)
+                },
+                Scissors = new[]
+                {
+                    new Rect2D(new Extent2D((uint)width, (uint)height))
+                }
+            },
+            colorBlendState: new PipelineColorBlendStateCreateInfo
+            {
+                Attachments = new[]
+                {
+                    new PipelineColorBlendAttachmentState
+                    {
+                        BlendEnable = false,
+                        ColorWriteMask = ColorComponentFlags.R
+                                         | ColorComponentFlags.G
+                                         | ColorComponentFlags.B
+                                         | ColorComponentFlags.A,
+                        
+                        SourceColorBlendFactor = BlendFactor.One,
+                        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha,
+                        ColorBlendOp = BlendOp.Add,
+                        
+                        SourceAlphaBlendFactor = BlendFactor.One,
+                        DestinationAlphaBlendFactor = BlendFactor.Zero,
+                        AlphaBlendOp = BlendOp.Add
+                    }
+                },
+                LogicOpEnable = false,
+            },
+            multisampleState: new PipelineMultisampleStateCreateInfo
+            {
+                SampleShadingEnable = false,
+                RasterizationSamples = SampleCountFlags.SampleCount1,
+            },
+            depthStencilState: new PipelineDepthStencilStateCreateInfo()
+            {
+                DepthTestEnable = true,
+                DepthWriteEnable = true,
+                DepthCompareOp = CompareOp.Less,
+                DepthBoundsTestEnable = false,
+                StencilTestEnable = false,
+            });
+        #endregion
+
+        return (renderPass, pipeline);
+    }
+    private static Framebuffer[] CreateFrameBuffers(int width, int height, ImageView[] colorImageViews, ImageView[] depthImageView, RenderPass renderPass, Device device)
+    {
+        Framebuffer[] frameBuffers = new Framebuffer[colorImageViews.Length];
+        for (int i = 0; i < frameBuffers.Length; i++)
+        {
+            frameBuffers[i] = device.CreateFramebuffer(renderPass, new ImageView[] { colorImageViews[i], depthImageView[i] }, (uint)width, (uint)height, 1);
+        }
+        return frameBuffers;
+    }
+    private static (Semaphore[], Semaphore[], Fence[]) CreateSync(uint maxFlightCount, Device device)
+    {
+        var imageAvailableSemaphores = new Semaphore[maxFlightCount];
+        var renderFinishedSemaphores = new Semaphore[maxFlightCount];
+        var fences = new Fence[maxFlightCount];
+        for (int i = 0; i < maxFlightCount; i++)
+        {
+            imageAvailableSemaphores[i] = device.CreateSemaphore();
+            renderFinishedSemaphores[i] = device.CreateSemaphore();
+            fences[i] = device.CreateFence(FenceCreateFlags.Signaled);
+        }
+        return (imageAvailableSemaphores, renderFinishedSemaphores, fences);
+    }
+    private static (Buffer, DeviceMemory) CreateBuffer<T>(T[] array, BufferUsageFlags flag, PhysicalDevice phyDevice, Device device, CommandPool transientCommandPool, Queue transferQueue)
+    {
+        int size = Unsafe.SizeOf<T>();
+        ulong bufferSize = (ulong)(size * array.Length);
+
+        var (stagingBuffer, stagingBufferMemory) = CreateBufferInner(bufferSize, BufferUsageFlags.TransferSource, MemoryPropertyFlags.HostVisible | MemoryPropertyFlags.HostCoherent, phyDevice, device);
+        IntPtr memoryBuffer = stagingBufferMemory.Map(0, bufferSize, MemoryMapFlags.None);
+        for (int index = 0; index < array.Length; index++)
+        {
+            Marshal.StructureToPtr(array[index], memoryBuffer + (size * index), false);
+        }
+        stagingBufferMemory.Unmap();
+        
+        var (buffer, bufferMemory) = CreateBufferInner(bufferSize, BufferUsageFlags.TransferDestination | flag, MemoryPropertyFlags.DeviceLocal, phyDevice, device);
+        CopyBuffer(bufferSize, stagingBuffer, buffer, device, transientCommandPool, transferQueue);
+        
+        stagingBuffer.Dispose();
+        stagingBufferMemory.Free();
+        
+        return (buffer, bufferMemory);
+        
+        static (Buffer, DeviceMemory) CreateBufferInner(ulong bufferSize, BufferUsageFlags usage, MemoryPropertyFlags properties, PhysicalDevice phyDevice, Device device)
+        {
+            Buffer buffer = device.CreateBuffer(bufferSize, usage, SharingMode.Exclusive, null);
+            var memRequirements = buffer.GetMemoryRequirements();
+            DeviceMemory bufferMemory = device.AllocateMemory(memRequirements.Size, FindMemoryType(memRequirements.MemoryTypeBits, properties, phyDevice));
+            buffer.BindMemory(bufferMemory, 0);
+            return (buffer, bufferMemory);
+        }
+        
+        static uint FindMemoryType(uint typeFilter, MemoryPropertyFlags flags, PhysicalDevice phyDevice)
+        {
+            var memoryProperties = phyDevice.GetMemoryProperties();
+
+            for (int i = 0; i < memoryProperties.MemoryTypes.Length; i++)
+            {
+                if ((typeFilter & (1u << i)) > 0
+                    && memoryProperties.MemoryTypes[i].PropertyFlags.HasFlag(flags))
+                {
+                    return (uint)i;
+                }
+            }
+
+            throw new Exception("No compatible memory type.");
+        }
+        
+        static void CopyBuffer(ulong bufferSize, Buffer src, Buffer dst, Device device, CommandPool transientCommandPool, Queue transferQueue)
+        {
+            var transferBuffers = device.AllocateCommandBuffers(transientCommandPool, CommandBufferLevel.Primary, 1);
+
+            transferBuffers[0].Begin(CommandBufferUsageFlags.OneTimeSubmit);
+
+            transferBuffers[0].CopyBuffer(src, dst, new[] { new BufferCopy { Size = bufferSize } });
+
+            transferBuffers[0].End();
+
+            transferQueue.Submit(new[] { new SubmitInfo { CommandBuffers = transferBuffers } }, null);
+            transferQueue.WaitIdle();
+
+            transientCommandPool.FreeCommandBuffers(transferBuffers);
+        }
+    }
+
+    public void Render()
+    {
+        device.WaitForFences(fences[curFrame], true, ulong.MaxValue);
+        device.ResetFences(fences[curFrame]);
+        
+        uint nextImage = this.swapChain.AcquireNextImage(uint.MaxValue, this.imageAvailableSemaphores[curFrame], null);
+        
+        var commandBuffer = commandBuffers[curFrame];
+        commandBuffer.Reset();
+        
+        commandBuffer.Begin(CommandBufferUsageFlags.SimultaneousUse/*OneTimeSubmit*/); // TODO 
+        commandBuffer.BeginRenderPass(this.renderPass,
+            this.frameBuffers[nextImage],
+            new Rect2D(new Extent2D((uint)window.Width, (uint)window.Height)),
+            new ClearValue[]
+            {
+                new ClearColorValue(0.1f, 0.1f, 0.1f, 0.1f),
+                new ClearDepthStencilValue(1.0f, 0)
+            },
+            SubpassContents.Inline);
+        
+        commandBuffer.BindPipeline(PipelineBindPoint.Graphics, this.pipeline);
+        commandBuffer.BindVertexBuffers(0, new[] { vertexBuffer }, new ulong[] { 0 });
+        commandBuffer.BindIndexBuffer(indexBuffer, 0, IndexType.Uint16);
+        commandBuffer.Draw(3, 1, 0, 0);
+
+        commandBuffer.EndRenderPass();
+        commandBuffer.End();
+
+        this.graphicsQueue.Submit(
+            new SubmitInfo
+            {
+                CommandBuffers = new[] { commandBuffer },
+                SignalSemaphores = new[] { this.renderFinishedSemaphores[curFrame] },
+                WaitDestinationStageMask = new [] { PipelineStageFlags.ColorAttachmentOutput },
+                WaitSemaphores = new [] { this.imageAvailableSemaphores[curFrame] }
+            }, fences[curFrame]);
+        this.presentQueue.Present(this.renderFinishedSemaphores[curFrame], this.swapChain, nextImage, new Result[1]);
+
+        curFrame = (curFrame + 1) % maxFlightCount;
+    }
+
+    private readonly Window window;
+    private readonly Instance instance;
+    private readonly Surface surface;
+    private readonly PhysicalDevice phyDevice;
+    private readonly Device device;
+    private readonly Queue graphicsQueue;
+    private readonly Queue presentQueue;
+    private readonly CommandPool commandPool;
+    private readonly CommandBuffer[] commandBuffers;
+    private readonly Swapchain swapChain;
+    private readonly Format colorFormat;
+    private readonly Image[] colorImages;
+    private readonly ImageView[] colorImageViews;
+    private readonly Format depthFormat;
+    private readonly Image[] depthImages;
+    private readonly ImageView[] depthImageViews;
+    private readonly RenderPass renderPass;
+    private readonly Pipeline pipeline;
+    private readonly Framebuffer[] frameBuffers;
+    private readonly Semaphore[] imageAvailableSemaphores;
+    private readonly Semaphore[] renderFinishedSemaphores;
+    private readonly Fence[] fences;
+    private readonly Buffer vertexBuffer;
+    private readonly DeviceMemory vertexMemory;
+    private readonly Buffer indexBuffer;
+    private readonly DeviceMemory indexMemory;
+
+    private uint curFrame = 0;
+
+    private readonly uint maxFlightCount;
+
+    private readonly VertexInput[] input = new VertexInput[]
+    {
+        new VertexInput()
+        {
+            position = new Vector3(0, -0.5f, 0),
+            color = Color.Red,
+            uv = new Vector2(0, 0),
+        },
+        new VertexInput()
+        {
+            position = new Vector3(0.5f, 0.5f, 0),
+            color = Color.Red,
+            uv = new Vector2(0, 0),
+        },
+        new VertexInput()
+        {
+            position = new Vector3(-0.5f, 0.5f, 0),
+            color = Color.Red,
+            uv = new Vector2(0, 0),
+        }
+    };
+
+    private readonly ushort[] indices = new ushort[]
+    {
+        0, 1, 2,
+    };
+
+    private readonly Uniform uniform = new Uniform()
+    {
+        
+    };
+    
+    private struct QueueFamilyIndices
+    {
+        public uint? graphicsQueue;
+        public uint? presentQueue;
+
+        public static implicit operator bool(QueueFamilyIndices queueFamilyIndices)
+        {
+            return queueFamilyIndices.graphicsQueue.HasValue
+                   && queueFamilyIndices.presentQueue.HasValue;
         }
 
-        return phyDevice.CreateDevice(new DeviceCreateInfo()
+        public IEnumerable<uint> Indices
         {
-            QueueCreateInfos = queueInfo.ToArray(),
-            EnabledExtensionNames = new string[] { "VK_KHR_swapchain" }
-        });
-    }
+            get
+            {
+                if (this.graphicsQueue.HasValue)
+                {
+                    yield return this.graphicsQueue.Value;
+                }
 
-    private static Queue GetGraphicsQueue(Device device, QueueFamilyIndices indices)
-    {
-        return device.GetQueue(indices.graphicsQueue!.Value, 0);
-    }
-
-    private static Queue GetPresentQueue(Device device, QueueFamilyIndices indices)
-    {
-        return device.GetQueue(indices.presentQueue!.Value, 0);
-    }
-
-    private static ShaderModule CreateShaderModule(Device device, string path)
-    {
-        return device.CreateShaderModule(new ShaderModuleCreateInfo()
-        {
-            Code = Tools.ReadFileUints(path)
-        });
-    }
-
-    private static Semaphore[] CreateSemaphores(Device device, int maxFlightCount)
-    {
-        Semaphore[] sems = new Semaphore[maxFlightCount];
-        for (int i = 0; i < maxFlightCount; ++i)
-        {
-            sems[i] = CreateSemaphore(device);
+                if (this.presentQueue.HasValue && this.presentQueue != this.graphicsQueue)
+                {
+                    yield return this.presentQueue.Value;
+                }
+            }
         }
-        return sems;
     }
-    private static Semaphore CreateSemaphore(Device device)
+    
+    private struct SwapChainSupportDetails
     {
-        return device.CreateSemaphore(new SemaphoreCreateInfo());
+        public SurfaceCapabilities Capabilities;
+        public SurfaceFormat[] Formats;
+        public PresentMode[] PresentModes;
     }
-
-    private static Fence[] CreateFences(Device device, int maxFlightCount)
-    {
-        Fence[] fences = new Fence[maxFlightCount];
-        for (int i = 0; i < maxFlightCount; ++i)
-        {
-            fences[i] = CreateFence(device);
-        }
-        return fences;
-    }
-    private static Fence CreateFence(Device device)
-    {
-        return device.CreateFence(new FenceCreateInfo()
-        {
-            Flags = FenceCreateFlags.Signaled
-        });
-    }
-
-    private static List<(Buffer, Buffer)> CreateBuffers()
-    {
-        return null;
-    }
-
-    private static (Buffer, Buffer) CreateBuffer()
-    {
-        return (null, null);
-    }
-
-    private static void UpdateBuffers()
-    {
-
-    }
-
-    private static void UpdateBuffer()
-    {
-
-    }
-
-    private static Sampler CreateSampler(Device device)
-    {
-        return device.CreateSampler(new SamplerCreateInfo()
-        {
-            MagFilter = Filter.Linear,
-            MinFilter = Filter.Linear,
-            AddressModeU = SamplerAddressMode.Repeat,
-            AddressModeV = SamplerAddressMode.Repeat,
-            AddressModeW = SamplerAddressMode.Repeat,
-            AnisotropyEnable = false,
-            BorderColor = BorderColor.IntOpaqueBlack,
-            UnnormalizedCoordinates = false,
-            CompareEnable = false,
-            MipmapMode = SamplerMipmapMode.Linear,
-        });
-    }
-
-    private static DescriptorPool CreateDescriptorPool(Device device, int maxFlightCount, DescriptorType[] types)
-    {
-        DescriptorPoolSize[] poolSizes = new DescriptorPoolSize[types.Length];
-        for (int i = 0; i < types.Length; ++i)
-        {
-            poolSizes[i].Type = types[i];
-            poolSizes[i].DescriptorCount = (uint)maxFlightCount;
-        }
-
-        return device.CreateDescriptorPool(new DescriptorPoolCreateInfo()
-        {
-            Flags = DescriptorPoolCreateFlags.FreeDescriptorSet,
-            MaxSets = (uint)maxFlightCount,
-            PoolSizes = poolSizes,
-        });
-    }
-
-    private static DescriptorSet[] CreateDescriptorSets(int maxFlightCount, int setIndex, Device device, RenderPipeline pipeline, DescriptorPool descriptorPool)
-    {
-        return null;
-    }
-
-    private static void UpdateDescriptorSets(int binding, int dataSize, Buffer[] deviceBuffer, DescriptorSet[] descriptorSets, Device device)
-    {
-
-    }
-
-    private static void UpdateDescriptorSets()
-    {
-
-    }
-    #endregion#1#
-
-    /*#region Fields
-
-    private static Instance instance;
-    private static SurfaceKhr surface;
-    private static Device device;
-    private static Queue graphicsQueue;
-    private static Queue presentQueue;
-    private static CommandPool commandPool;
-    private static CommandBuffer[] commandBuffers;
-    private static SwapChain swapChain;
-    private static RenderPipeline renderPipeline;
-    private static Semaphore[] imageAvailableSems;
-    private static Semaphore[] imageDrawFinishSems;
-    private static Fence[] fences;
-
-    private static Buffer deviceVertBuffer;
-    private static Buffer hostVertBuffer;
-    private static Buffer deviceIndexBuffer;
-    private static Buffer hostIndexBuffer;
-
-    private static Buffer[] deviceVpUniformBuffer;
-    private static Buffer[] hostVpUniformBuffer;
-
-    private static Texture texture;
-    private static Sampler sampler;
-
-    private static DescriptorPool descriptorPool;
-    private static DescriptorSet[] descriptorSets;
-
-    private static int curFrame = 0;
-
-    #endregion#1#
 }
-
-public static class RenderHelper
-{
-    [Conditional("DEBUG")]
-    public static void CheckErrors(VkResult result)
-    {
-        if (result != VkResult.VK_SUCCESS)
-        {
-            throw new InvalidOperationException(result.ToString());
-        }
-    }
-}*/

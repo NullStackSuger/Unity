@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace UnityEngine
 {
     public struct Color
@@ -26,6 +28,16 @@ namespace UnityEngine
             this.g = g;
             this.b = b;
             this.a = a;
+        }
+
+        public static implicit operator Vector4(Color color)
+        {
+            return new Vector4(color.r, color.g, color.b, color.a);
+        }
+
+        public static implicit operator Vector3(Color color)
+        {
+            return new Vector3(color.r, color.g, color.b);
         }
 
         public static Color Black => new Color(0.0f, 0.0f, 0.0f);

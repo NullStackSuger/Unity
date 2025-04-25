@@ -13,6 +13,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Reference Include="SharpVk">
+        <HintPath>..\UnityEngine\Render\SharpVk.dll</HintPath>
+      </Reference>
       <Reference Include="SharpVk.Glfw">
         <HintPath>..\UnityEngine\Window\SharpVk.Glfw.dll</HintPath>
       </Reference>

@@ -6,10 +6,10 @@ namespace UnityEngine
     public static class Debug
     {
         [Conditional("DEBUG")]
-        public static void Log(string? message)
+        public static void Log(string message)
         {
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine(message);
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.WriteLine($"[Debug]: {message}");
         }
 
         [Conditional("DEBUG")]
@@ -19,10 +19,10 @@ namespace UnityEngine
         }
 
         [Conditional("DEBUG")]
-        public static void Warning(string? message)
+        public static void Warning(string message)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine(message);
+            Console.WriteLine($"[Warning]: {message}");
         }
 
         [Conditional("DEBUG")]
@@ -32,7 +32,7 @@ namespace UnityEngine
         }
 
         [Conditional("DEBUG")]
-        public static void Error(string? message)
+        public static void Error(string message)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             throw new Exception(message);

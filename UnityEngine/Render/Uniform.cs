@@ -1,7 +1,6 @@
-namespace UnityEngine
-{
-    public class Uniform
-    {
+namespace UnityEngine;
 
-    }
+public struct Uniform
+{
+    
 }
