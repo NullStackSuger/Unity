@@ -736,7 +736,7 @@ public unsafe class RenderSystem
         return (pool, set);
     }
     
-    public void Render()
+    public void Tick()
     {
         device.WaitForFences(fences[curFrame], true, ulong.MaxValue);
         device.ResetFences(fences[curFrame]);
