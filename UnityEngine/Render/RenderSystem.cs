@@ -32,8 +32,8 @@ public unsafe class RenderSystem
         commandPool = device.CreateCommandPool(queueFamilies.graphicsQueue!.Value, CommandPoolCreateFlags.ResetCommandBuffer);
         commandBuffers = device.AllocateCommandBuffers(commandPool, CommandBufferLevel.Primary, maxFlightCount);
         (swapChain, colorImageViews, colorFormat, depthImageViews, depthFormat) = CreateSwapChain(window.Width, window.Height, maxFlightCount, queueFamilies, phyDevice, device, surface, commandPool, graphicsQueue);
-        ShaderModule vertShader = CreateShader(@".\Shaders\vert.spv", device);
-        ShaderModule fragShader = CreateShader(@".\Shaders\frag.spv", device);
+        ShaderModule vertShader = CreateShader(@".\Shaders\shader.vert.spv", device);
+        ShaderModule fragShader = CreateShader(@".\Shaders\shader.frag.spv", device);
         (renderPass, setLayout, pipelineLayout, pipeline) = CreatePipeline(window.Width, window.Height, vertShader, fragShader, colorFormat, depthFormat, device);
         frameBuffers = CreateFrameBuffers(window.Width, window.Height, colorImageViews, depthImageViews, renderPass, device);
         (imageAvailableSemaphores, renderFinishedSemaphores, fences) = CreateSync(maxFlightCount, device); 

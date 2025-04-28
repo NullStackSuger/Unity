@@ -9,9 +9,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Reference Include="ImGui.NET">
-        <HintPath>UI\ImGui.NET.dll</HintPath>
-      </Reference>
       <Reference Include="SharpVk">
         <HintPath>Render\SharpVk.dll</HintPath>
       </Reference>

@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-// glslc D://Rider//Project//Unity//UnityEngine//Render//Shaders//shader.frag -o D://Rider//Project//Unity//Sandbox//bin//Debug//net8.0-windows//Shaders//frag.spv
+// glslc D://Rider//Project//Unity//UnityEngine//Render//Shaders//shader.frag -o D://Rider//Project//Unity//Sandbox//bin//Debug//net8.0-windows//Shaders//shader.frag.spv
 
 layout(location = 0) in vec3 fragColor;
 

@@ -75,6 +75,7 @@
   &lt;Assembly Path="C:\Users\Lenovo\.nuget\packages\imgui.net\1.91.6.1\lib\net8.0\ImGui.NET.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\Lenovo\.nuget\packages\glfwdotnet\20.9.0\lib\netstandard2.1\GLFWDotNet.dll" /&gt;&#xD;
   &lt;Assembly Path="C:\Users\Lenovo\.nuget\packages\vulkansharp\0.1.10\lib\netstandard1.1\Vulkan.dll" /&gt;&#xD;
+  &lt;Assembly Path="D:\Rider\Project\Unity\UnityEngine\Render\SharpVk.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String>
 	
 	</wpf:ResourceDictionary>

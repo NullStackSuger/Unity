@@ -12,14 +12,12 @@ namespace Sandbox
         {
             Window window = WindowSystem.Create(Width, Height, Title);
             RenderSystem renderSystem = new RenderSystem(window);
-            UiSystem uiSystem = new UiSystem(window);
             
             while (WindowSystem.Tick(Tick)) { }
 
             void Tick(Window _)
             {
                 renderSystem.Tick();
-                uiSystem.Tick();
             }
         }
     }
