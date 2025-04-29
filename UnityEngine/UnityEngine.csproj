@@ -9,12 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Reference Include="SharpVk">
-        <HintPath>Render\SharpVk.dll</HintPath>
-      </Reference>
-      <Reference Include="SharpVk.Glfw">
-        <HintPath>Window\SharpVk.Glfw.dll</HintPath>
-      </Reference>
+      <PackageReference Include="Veldrid" Version="4.9.0" />
+      <PackageReference Include="Veldrid.ImGui" Version="5.89.2-ga121087cad" />
+      <PackageReference Include="Veldrid.SDL2" Version="4.9.0" />
+      <PackageReference Include="Veldrid.SPIRV" Version="1.0.15" />
+      <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0" />
     </ItemGroup>
 
 </Project>

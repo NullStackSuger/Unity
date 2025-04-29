@@ -10,7 +10,7 @@ namespace Sandbox
         
         public static void Main(string[] args)
         {
-            Window window = WindowSystem.Create(Width, Height, Title);
+            /*Window window = WindowSystem.Create(Width, Height, Title);
             RenderSystem renderSystem = new RenderSystem(window);
             
             while (WindowSystem.Tick(Tick)) { }
@@ -18,7 +18,7 @@ namespace Sandbox
             void Tick(Window _)
             {
                 renderSystem.Tick();
-            }
+            }*/
         }
     }
 }
