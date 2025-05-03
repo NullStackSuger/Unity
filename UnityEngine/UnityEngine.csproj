@@ -16,9 +16,4 @@
       <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ClCompile Include="Render\Shaders\HLSL\imgui-frag.hlsl" />
-      <ClCompile Include="Render\Shaders\HLSL\imgui-vertex.hlsl" />
-    </ItemGroup>
-
 </Project>

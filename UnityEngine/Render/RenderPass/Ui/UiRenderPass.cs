@@ -6,10 +6,11 @@ using Veldrid.Sdl2;
 
 namespace UnityEngine;
 
-public class UiSystem
+public class UiRenderPass : RenderPass
 {
-    public UiSystem(Sdl2Window window, GraphicsDevice device)
+    public UiRenderPass(GraphicsDevice device)
     {
+        var window = Window.window;
         this.debugInfos = new List<DebugEvent>(10);
         this.device = device;
         uiRenderer = new ImGuiController(device, device.MainSwapchain.Framebuffer.OutputDescription, window.Width, window.Height);
@@ -42,10 +43,12 @@ public class UiSystem
         style.Colors[(int)ImGuiCol.ButtonActive] = new Color(0.3f); // 按钮点击
     }
     
-    public void Tick(float deltaTime, InputSnapshot snapshot)
+    public override void Tick(CommandList commandList)
     {
-        uiRenderer.Update(deltaTime, snapshot);
+        InputSnapshot snapshot = Input.Snapshot;
+        float deltaTime = Time.DeltaTime;
         
+        uiRenderer.Update(deltaTime, snapshot);
         #region DockSpace BG
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f);
@@ -69,53 +72,52 @@ public class UiSystem
         ImGui.PopStyleColor();
         ImGui.PopStyleVar(2);
         #endregion
-
-        {
-            ImGui.Begin("Editor");
-            ImGui.End();
+        #region Debug
+        ImGui.Begin("Editor");
+        ImGui.End();
         
-            ImGui.Begin("Run");
-            ImGui.End();
+        ImGui.Begin("Run");
+        ImGui.End();
         
-            ImGui.Begin("Debug");
+        ImGui.Begin("Debug");
             
-            Vector2 clearButtonPos = ImGui.GetCursorPos() + new Vector2(ImGui.GetWindowSize().X - 50, -10);
-            ImGui.SetCursorPos(clearButtonPos);
-            if (ImGui.Button("Clear"))
-            {
-                ClearDebug();
-            }
-        
-            float messagePosX = ImGui.GetCursorPos().X;
-            float extentMessagePosX = messagePosX + ImGui.GetWindowSize().X - 300;
-            float y = ImGui.GetCursorPos().Y;
-            foreach (var info in GetDebug(level))
-            {
-                ImGui.SetCursorPos(new Vector2(messagePosX, y));
-                ImGui.TextColored(info.color, $"[{info.level}]: {info.message}");
-                ImGui.SetCursorPos(new Vector2(extentMessagePosX, y));
-                ImGui.Text($"({info.path}, {info.line})  {info.time}");
-                y += offset;
-            }
-        
-            ImGui.End();
+        Vector2 clearButtonPos = ImGui.GetCursorPos() + new Vector2(ImGui.GetWindowSize().X - 50, -10);
+        ImGui.SetCursorPos(clearButtonPos);
+        if (ImGui.Button("Clear"))
+        {
+            ClearDebug();
         }
         
+        float messagePosX = ImGui.GetCursorPos().X;
+        float extentMessagePosX = messagePosX + ImGui.GetWindowSize().X - 300;
+        float y = ImGui.GetCursorPos().Y;
+        foreach (var info in GetDebug(level))
+        {
+            ImGui.SetCursorPos(new Vector2(messagePosX, y));
+            ImGui.TextColored(info.color, $"[{info.level}]: {info.message}");
+            ImGui.SetCursorPos(new Vector2(extentMessagePosX, y));
+            ImGui.Text($"({info.path}, {info.line})  {info.time}");
+            y += offset;
+        }
+        
+        ImGui.End();
+        #endregion
+        #region Asset
         ImGui.Begin("Asset");
         ImGui.End();
-        
+        #endregion
+        #region Scene
         ImGui.Begin("Scene");
         ImGui.End();
-        
+        #endregion
+        #region Setting
         ImGui.Begin("Setting");
         ImGui.End();
-    }
-
-    public void Render(CommandList commandList)
-    {
+        #endregion
+        
         uiRenderer.Render(device, commandList);
     }
-
+    
     /// <summary>
     /// 清除输出信息
     /// </summary>
