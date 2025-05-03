@@ -18,17 +18,16 @@ public static class RenderSystem
         );
         commandList = device.ResourceFactory.CreateCommandList();
 
-        renderPasses = [new ObjectsRenderPass(device), new UiRenderPass(device)];
+        var objectsRenderPass = new ObjectsRenderPass(device, 800, 600);
+        var uiRenderPass = new UiRenderPass(device, objectsRenderPass.result);
+        renderPasses = [objectsRenderPass, uiRenderPass];
         
         EventSystem.Add(new WindowResizeEventHandler());
     }
 
     public static void Tick()
     {
-
         commandList.Begin();
-        commandList.SetFramebuffer(device.MainSwapchain.Framebuffer);
-        commandList.ClearColorTarget(0, new RgbaFloat(0.1f, 0.1f, 0.1f, 1.0f));
 
         foreach (RenderPass pass in renderPasses)
         {
@@ -43,7 +42,7 @@ public static class RenderSystem
     private static readonly Sdl2Window window;
     private static readonly GraphicsDevice device;
     private static readonly CommandList commandList;
-    private static readonly RenderPass[] renderPasses;
+    public static readonly RenderPass[] renderPasses;
     
     private class WindowResizeEventHandler : AEvent<WindowResizeEvent>
     {

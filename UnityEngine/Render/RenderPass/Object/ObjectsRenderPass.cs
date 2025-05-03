@@ -8,17 +8,23 @@ namespace UnityEngine;
 
 public class ObjectsRenderPass : RenderPass
 {
-    public ObjectsRenderPass(GraphicsDevice device)
+    public ObjectsRenderPass(GraphicsDevice device, uint width, uint height)
     {
-        var window = Window.window;
+        // 更新输入信息
+        //mvpUniform.projection = Helper.Perspective(Helper.ToRadians(50.0f), (float)width / (float)height, 0.1f, 100.0f);
         
-        mvpUniform.projection = Helper.Perspective(Helper.ToRadians(50.0f), (float)window.Width / (float)window.Height, 0.1f, 100.0f);
+        // 创建Texture接收结果
+        result = device.ResourceFactory.CreateTexture(TextureDescription.Texture2D(width, height, 1, 1, PixelFormat.B8_G8_R8_A8_UNorm, TextureUsage.RenderTarget | TextureUsage.Sampled));
+        Texture depthResult = device.ResourceFactory.CreateTexture(TextureDescription.Texture2D(width, height, 1, 1, PixelFormat.D24_UNorm_S8_UInt, TextureUsage.DepthStencil));
+        frameBuffer = device.ResourceFactory.CreateFramebuffer(new FramebufferDescription(depthResult, result));
         
+        // 顶点Buffer
         vertexBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)(vertices.Length * Marshal.SizeOf<Vertex>()), BufferUsage.VertexBuffer));
         device.UpdateBuffer(vertexBuffer, 0, vertices);
         indexBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)(indices.Length * sizeof(ushort)), BufferUsage.IndexBuffer));
         device.UpdateBuffer(indexBuffer, 0, indices);
         
+        // Uniform Buffer
         mvpBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<MVPUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
         device.UpdateBuffer(mvpBuffer, 0, ref mvpUniform);
         var resourcesLayout = device.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription
@@ -27,6 +33,7 @@ public class ObjectsRenderPass : RenderPass
         ));
         resourceSet = device.ResourceFactory.CreateResourceSet(new ResourceSetDescription(resourcesLayout, mvpBuffer));
         
+        // Pipeline
         pipeline = device.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription()
         {
             BlendState = BlendStateDescription.SingleOverrideBlend,
@@ -55,12 +62,15 @@ public class ObjectsRenderPass : RenderPass
                     new ShaderDescription(ShaderStages.Fragment, File.ReadAllBytes("Shaders/Object/object.frag.spv"), "main")
                 )
             ),
-            Outputs = device.SwapchainFramebuffer.OutputDescription,
+            Outputs = frameBuffer.OutputDescription,
         });
     }
     
     public override void Tick(CommandList commandList)
     {
+        commandList.SetFramebuffer(frameBuffer);
+        commandList.ClearColorTarget(0, new RgbaFloat(0.1f, 0.1f, 0.1f, 1.0f));
+        
         commandList.SetVertexBuffer(0, vertexBuffer);
         commandList.SetIndexBuffer(indexBuffer, IndexFormat.UInt16);
         commandList.SetPipeline(pipeline);
@@ -68,6 +78,8 @@ public class ObjectsRenderPass : RenderPass
         commandList.DrawIndexed((uint)indices.Length, 1, 0, 0, 0);
     }
     
+    public readonly Texture result;
+    private readonly Framebuffer frameBuffer;
     private readonly DeviceBuffer vertexBuffer;
     private readonly DeviceBuffer indexBuffer;
     private readonly DeviceBuffer mvpBuffer;
@@ -88,7 +100,7 @@ public class ObjectsRenderPass : RenderPass
     private readonly MVPUniform mvpUniform = new()
     {
         model = Helper.Model(new Vector3(0f, 0f, 0f)),
-        view = Helper.View(new Vector3(0f, 0f, -2.5f)),
+        view = Matrix4x4.Identity/*Helper.View(new Vector3(0f, 0f, -2.5f))*/,
         projection = Matrix4x4.Identity,
     };
 }
