@@ -11,7 +11,7 @@ public class ObjectsRenderPass : RenderPass
     public ObjectsRenderPass(GraphicsDevice device, uint width, uint height)
     {
         // 更新输入信息
-        //mvpUniform.projection = Helper.Perspective(Helper.ToRadians(50.0f), (float)width / (float)height, 0.1f, 100.0f);
+        mvpUniform.projection = Helper.Perspective(Helper.ToRadians(50.0f), (float)width / (float)height, 0.1f, 100.0f);
         
         // 创建Texture接收结果
         result = device.ResourceFactory.CreateTexture(TextureDescription.Texture2D(width, height, 1, 1, PixelFormat.B8_G8_R8_A8_UNorm, TextureUsage.RenderTarget | TextureUsage.Sampled));
@@ -70,6 +70,7 @@ public class ObjectsRenderPass : RenderPass
     {
         commandList.SetFramebuffer(frameBuffer);
         commandList.ClearColorTarget(0, new RgbaFloat(0.1f, 0.1f, 0.1f, 1.0f));
+        commandList.ClearDepthStencil(1, 0);
         
         commandList.SetVertexBuffer(0, vertexBuffer);
         commandList.SetIndexBuffer(indexBuffer, IndexFormat.UInt16);
@@ -97,10 +98,11 @@ public class ObjectsRenderPass : RenderPass
     {
         0, 1, 2, 2, 1, 3,
     };
+    // TODO MVP矩阵有问题
     private readonly MVPUniform mvpUniform = new()
     {
         model = Helper.Model(new Vector3(0f, 0f, 0f)),
-        view = Matrix4x4.Identity/*Helper.View(new Vector3(0f, 0f, -2.5f))*/,
+        view = /*Matrix4x4.Identity*/Helper.View(new Vector3(0f, 0f, -2.5f)),
         projection = Matrix4x4.Identity,
     };
 }
