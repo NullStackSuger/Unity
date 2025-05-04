@@ -9,7 +9,7 @@ public static class Window
 {
     static Window()
     {
-        window = VeldridStartup.CreateWindow(new WindowCreateInfo(50, 50, 1920, 1080, WindowState.Normal, "Unity"));
+        window = VeldridStartup.CreateWindow(new WindowCreateInfo(50, 50, 1920, 1080, WindowState.Maximized, "Unity"));
         
         window.Resized += () =>
         {

@@ -1,8 +1,8 @@
 using System.Numerics;
+using System.Text;
 using ImGuiNET;
 using UnityEngine.Events;
 using Veldrid;
-using Veldrid.Sdl2;
 
 namespace UnityEngine;
 
@@ -43,6 +43,13 @@ public class UiRenderPass : RenderPass
         style.Colors[(int)ImGuiCol.Button] = new Color(0.5f); // 按钮颜色
         style.Colors[(int)ImGuiCol.ButtonHovered] = new Color(0.4f); // 按钮悬停
         style.Colors[(int)ImGuiCol.ButtonActive] = new Color(0.3f); // 按钮点击
+        style.Colors[(int)ImGuiCol.FrameBg] = new Color(0.4f); // 输入背景色
+        style.Colors[(int)ImGuiCol.FrameBgHovered] = new Color(0.5f); // 输入悬停颜色
+        style.Colors[(int)ImGuiCol.FrameBgActive] = new Color(0.4f); // 输入点击颜色
+        style.Colors[(int)ImGuiCol.HeaderHovered] = new Color(0.4f); // 鼠标悬停颜色
+        style.Colors[(int)ImGuiCol.HeaderActive] = new Color(0.5f); // 鼠标点击颜色
+        style.Colors[(int)ImGuiCol.MenuBarBg] = Color.Gray; // 工具栏背景色
+        style.Colors[(int)ImGuiCol.CheckMark] = Color.Gray; // 工具栏背景色
     }
     
     public override void Tick(CommandList commandList)
@@ -54,6 +61,7 @@ public class UiRenderPass : RenderPass
         commandList.ClearColorTarget(0, new RgbaFloat(0.1f, 0.1f, 0.1f, 1.0f));
         
         uiRenderer.Update(deltaTime, snapshot);
+        
         #region DockSpace BG
         ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f);
@@ -77,45 +85,223 @@ public class UiRenderPass : RenderPass
         ImGui.PopStyleColor();
         ImGui.PopStyleVar(2);
         #endregion
-        #region Editor
-        ImGui.Begin("Editor");
-        ImGui.Image(objectsRenderView, new System.Numerics.Vector2(objectsRender.Width, objectsRender.Height));
-        ImGui.End();
-        #endregion
-        #region Run
-        ImGui.Begin("Run");
-        ImGui.End();
-        #endregion
         #region Debug
-        ImGui.Begin("Debug");
-            
-        Vector2 clearButtonPos = ImGui.GetCursorPos() + new Vector2(ImGui.GetWindowSize().X - 50, -10);
-        ImGui.SetCursorPos(clearButtonPos);
-        if (ImGui.Button("Clear"))
-        {
-            ClearDebug();
-        }
+        ImGui.Begin("Debug", ImGuiWindowFlags.MenuBar);
         
         float messagePosX = ImGui.GetCursorPos().X;
-        float extentMessagePosX = messagePosX + ImGui.GetWindowSize().X - 300;
         float y = ImGui.GetCursorPos().Y;
         foreach (var info in GetDebug(level))
         {
             ImGui.SetCursorPos(new Vector2(messagePosX, y));
             ImGui.TextColored(info.color, $"[{info.level}]: {info.message}");
-            ImGui.SetCursorPos(new Vector2(extentMessagePosX, y));
-            ImGui.Text($"({info.path}, {info.line})  {info.time}");
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.SetTooltip($"({info.path}, {info.line})  {info.time}");
+            }
             y += 30;
+        }
+        
+        if (ImGui.BeginMenuBar())
+        {
+            ImGui.Checkbox("Info", ref showInfo);
+            if (showInfo)
+            {
+                level |= DebugLevel.Info;
+            }
+            else
+            {
+                level &= ~DebugLevel.Info;
+            }
+            
+            ImGui.Checkbox("Warning", ref showWarning);
+            if (showWarning)
+            {
+                level |= DebugLevel.Warning;
+            }
+            else
+            {
+                level &= ~DebugLevel.Info;
+            }
+            
+            ImGui.Checkbox("Error", ref showError);
+            if (showError)
+            {
+                level |= DebugLevel.Error;
+            }
+            else
+            {
+                level &= ~DebugLevel.Info;
+            }
+            
+            if (ImGui.Button("Clear"))
+            {
+                ClearDebug();
+            }
+
+            ImGui.Text($"Count: {debugInfos.Count}");
+            
+            ImGui.EndMenuBar();
         }
         
         ImGui.End();
         #endregion
         #region Asset
         ImGui.Begin("Asset");
+        DrawAsset(fileSystem);
         ImGui.End();
+
+        static void DrawAsset(TreeNode<FileSystem.FileInfo> node)
+        {
+            FileSystem.FileInfo info = node;
+            bool isDirectory = info.IsDirectory;
+            bool isFile = info.IsFile;
+            if (!isDirectory && !isFile) return;
+            
+            ImGui.PushID(info.Path);
+
+            if (isDirectory)
+            {
+                bool needOpen = ImGui.TreeNodeEx(Path.GetFileName(info.Path), node.children.Count > 0 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.Leaf);
+                
+                if (ImGui.BeginPopupContextItem("context"))
+                {
+                    if (ImGui.MenuItem("ReName"))
+                    {
+                        
+                    }
+                    
+                    if (ImGui.MenuItem("Create Folder"))
+                    {
+                        
+                    }
+                    
+                    if (ImGui.MenuItem("Remove"))
+                    {
+                        
+                    }
+                    
+                    ImGui.EndPopup();
+                }
+
+                if (needOpen)
+                {
+                    for(int i = node.children.Count - 1; i >= 0; --i)
+                    {
+                        var child = node.children[i];
+                        DrawAsset(child);
+                    }   
+                    ImGui.TreePop();
+                }
+            }
+            else // isFile
+            {
+                bool needOpen = ImGui.TreeNodeEx(Path.GetFileName(info.Path), ImGuiTreeNodeFlags.Leaf);
+                
+                if (ImGui.BeginPopupContextItem("context"))
+                {
+                    if (ImGui.MenuItem("ReName"))
+                    {
+                        
+                    }
+                    
+                    if (ImGui.MenuItem("Remove"))
+                    {
+                        
+                    }
+                    
+                    ImGui.EndPopup();
+                }
+
+                if (needOpen)
+                {
+                    ImGui.TreePop();
+                }
+            }
+            
+            ImGui.PopID();
+        }
         #endregion
         #region Scene
         ImGui.Begin("Scene");
+        DrawScene(scene, ref renameInfo, ref renameBuffer);
+        ImGui.End();
+
+        static void DrawScene(TreeNode<Scene.SceneObjectInfo> node, ref Scene.SceneObjectInfo renameInfo, ref byte[] renameBuffer)
+        {
+            ImGui.PushID(node.GetHashCode());
+
+            Scene.SceneObjectInfo info = node;
+
+            if (renameInfo == info)
+            {
+                if (ImGui.InputText("##rename", renameBuffer, (uint)renameBuffer.Length, ImGuiInputTextFlags.EnterReturnsTrue))
+                {
+                    int len = Array.IndexOf(renameBuffer, (byte)0);
+                    if (len < 0) len = renameBuffer.Length;
+                    info.gameObject.name = Encoding.UTF8.GetString(renameBuffer, 0, len);
+
+                    renameInfo = null;
+                    renameBuffer = null;
+                }
+                
+                if (ImGui.IsItemDeactivated())
+                {
+                    renameInfo = null;
+                    renameBuffer = null;
+                }
+            }
+            else
+            {
+                bool nodeOpen = ImGui.TreeNodeEx($"{info.gameObject.name}##{node.GetHashCode()}", node.children.Count > 0 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.Leaf);
+
+                if (ImGui.BeginPopupContextItem("context"))
+                {
+                    if (ImGui.MenuItem("ReName"))
+                    {
+                        renameBuffer = new byte[256];
+                        Encoding.UTF8.GetBytes(info.gameObject.name, renameBuffer);
+                        renameInfo = info;
+                    }
+                
+                    if (ImGui.MenuItem("Add"))
+                    {
+                        node.AddChild(new Scene.SceneObjectInfo(new GameObject() { name = $"Game Object {node.children.Count + 1}" }));
+                    }
+
+                    if (ImGui.MenuItem("Remove"))
+                    {
+                        var parent = node.parent;
+                        if (parent != null)
+                        {
+                            parent.RemoveChild(node);
+                        }
+                    }
+                
+                    ImGui.EndPopup();
+                }
+            
+                if (nodeOpen)
+                {
+                    for (int i = node.children.Count - 1; i >= 0; i--)
+                    {
+                        var child = node.children[i];
+                        DrawScene(child, ref renameInfo, ref renameBuffer);
+                    }
+                    ImGui.TreePop();
+                }
+            }
+            
+            ImGui.PopID();
+        }
+        #endregion
+        #region Editor
+        ImGui.Begin("Editor");
+        ImGui.Image(objectsRenderView, new Vector2(objectsRender.Width, objectsRender.Height));
+        ImGui.End();
+        #endregion
+        #region Run
+        ImGui.Begin("Run");
+        ImGui.Image(objectsRenderView, new Vector2(objectsRender.Width, objectsRender.Height));
         ImGui.End();
         #endregion
         #region Setting
@@ -125,7 +311,7 @@ public class UiRenderPass : RenderPass
         
         uiRenderer.Render(device, commandList);
     }
-
+    
     #region Debug
     /// <summary>
     /// 清除输出信息
@@ -138,7 +324,7 @@ public class UiRenderPass : RenderPass
     /// <summary>
     /// 获取输出信息
     /// </summary>
-    public IEnumerable<DebugEvent> GetDebug(DebugLevel level = DebugLevel.All)
+    public IEnumerable<DebugEvent> GetDebug(DebugLevel level)
     {
         foreach (DebugEvent info in debugInfos)
         {
@@ -149,11 +335,19 @@ public class UiRenderPass : RenderPass
         }
     }
 
+    private bool showInfo = true, showWarning = true, showError = true;
     public DebugLevel level = DebugLevel.All;
     private readonly List<DebugEvent> debugInfos;
     #endregion
-
+    #region Asset
+    private readonly FileSystem fileSystem = new FileSystem($"{Define.BasePath}/Sandbox/Asset");
+    #endregion
     #region Scene
+    private Scene.SceneObjectInfo renameInfo = null;
+    private byte[] renameBuffer = null;
+    private readonly Scene scene = new Scene("Default Scene");
+    #endregion
+    #region Editor
     private readonly Texture objectsRender;
     private readonly IntPtr objectsRenderView;
     #endregion

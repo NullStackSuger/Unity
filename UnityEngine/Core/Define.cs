@@ -7,6 +7,6 @@ namespace UnityEngine
 #else
     public static bool IsDebug = false;
 #endif
-        public static string BasePath = "D:\\Rider\\Project\\Unity";
+        public static string BasePath = "D:/Rider/Project/Unity";
     }
 }

@@ -11,7 +11,18 @@ public class ObjectsRenderPass : RenderPass
     public ObjectsRenderPass(GraphicsDevice device, uint width, uint height)
     {
         // 更新输入信息
-        mvpUniform.projection = Helper.Perspective(Helper.ToRadians(50.0f), (float)width / (float)height, 0.1f, 100.0f);
+        mvpUniform = new MVPUniform()
+        {
+            model = Helper.Model(new Vector3(0f, 0f, 5f), new Vector3(Helper.ToRadians(45f), 0f, Helper.ToRadians(45f)), Vector3.One),
+            view = Helper.View(new Vector3(0f, 0f, -2.5f)),
+            projection = Helper.Perspective(Helper.ToRadians(50.0f), (float)width / (float)height, 0.1f, 100.0f)
+        };
+        Helper.LoadObj("Objs/cube", out indices, out var positions, out var uvs, out var normals);
+        vertices = new Vertex[positions.Length];
+        for (int i = 0; i < positions.Length; i++)
+        {
+            vertices[i] = new Vertex() { position = positions[i], uv = uvs[i] };
+        }
         
         // 创建Texture接收结果
         result = device.ResourceFactory.CreateTexture(TextureDescription.Texture2D(width, height, 1, 1, PixelFormat.B8_G8_R8_A8_UNorm, TextureUsage.RenderTarget | TextureUsage.Sampled));
@@ -87,22 +98,7 @@ public class ObjectsRenderPass : RenderPass
     private readonly ResourceSet resourceSet;
     private readonly Pipeline pipeline;
     
-    private readonly Vertex[] vertices = new Vertex[]
-    {
-        new Vertex { position = new Vector3(-0.5f, 0.5f, 0), color = Color.Blue, uv = new Vector2(0f, 1f) },
-        new Vertex { position = new Vector3(0.5f, 0.5f, 0), color = Color.Yellow, uv = new Vector2(1f, 1f) },
-        new Vertex { position = new Vector3(-0.5f, -0.5f, 0), color = Color.Red, uv = new Vector2(0f, 0f) },
-        new Vertex { position = new Vector3(0.5f, -0.5f, 0), color = Color.Green, uv = new Vector2(1f, 0f) },
-    };
-    private readonly ushort[] indices = new ushort[]
-    {
-        0, 1, 2, 2, 1, 3,
-    };
-    // TODO MVP矩阵有问题
-    private readonly MVPUniform mvpUniform = new()
-    {
-        model = Helper.Model(new Vector3(0f, 0f, 0f)),
-        view = /*Matrix4x4.Identity*/Helper.View(new Vector3(0f, 0f, -2.5f)),
-        projection = Matrix4x4.Identity,
-    };
+    private readonly Vertex[] vertices;
+    private readonly ushort[] indices;
+    private readonly MVPUniform mvpUniform;
 }
