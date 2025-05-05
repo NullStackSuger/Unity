@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Numerics;
 using System.Text;
 using ImGuiNET;
@@ -46,6 +47,7 @@ public class UiRenderPass : RenderPass
         style.Colors[(int)ImGuiCol.FrameBg] = new Color(0.4f); // 输入背景色
         style.Colors[(int)ImGuiCol.FrameBgHovered] = new Color(0.5f); // 输入悬停颜色
         style.Colors[(int)ImGuiCol.FrameBgActive] = new Color(0.4f); // 输入点击颜色
+        style.Colors[(int)ImGuiCol.Header] = new Color(0.3f); // 鼠标选中颜色
         style.Colors[(int)ImGuiCol.HeaderHovered] = new Color(0.4f); // 鼠标悬停颜色
         style.Colors[(int)ImGuiCol.HeaderActive] = new Color(0.5f); // 鼠标点击颜色
         style.Colors[(int)ImGuiCol.MenuBarBg] = Color.Gray; // 工具栏背景色
@@ -146,11 +148,26 @@ public class UiRenderPass : RenderPass
         ImGui.End();
         #endregion
         #region Asset
-        ImGui.Begin("Asset");
-        DrawAsset(fileSystem);
+        ImGui.Begin("Asset", ImGuiWindowFlags.MenuBar);
+        // 点击空白清空选中文件
+        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsAnyItemHovered())
+        {
+            selectedFile = null;
+        }
+        // 
+        if (ImGui.BeginMenuBar())
+        {
+            if (ImGui.Button("Rebuild"))
+            {
+                EventSystem.PublishAsync(new FileRebuildEvent(){ node = fileSystem });
+            }
+            
+            ImGui.EndMenuBar();
+        }
+        DrawAsset(fileSystem, ref selectedFile);
         ImGui.End();
 
-        static void DrawAsset(TreeNode<FileSystem.FileInfo> node)
+        static void DrawAsset(TreeNode<FileSystem.FileInfo> node, ref TreeNode<FileSystem.FileInfo> selectedFile)
         {
             FileSystem.FileInfo info = node;
             bool isDirectory = info.IsDirectory;
@@ -158,26 +175,34 @@ public class UiRenderPass : RenderPass
             if (!isDirectory && !isFile) return;
             
             ImGui.PushID(info.Path);
+            
+            var flags = ImGuiTreeNodeFlags.None;
+            if (selectedFile != null && selectedFile.Value.Path == info.Path)
+            {
+                flags |= ImGuiTreeNodeFlags.Selected;
+            }
+            if (node.Children.Count <= 0)
+            {
+                flags |= ImGuiTreeNodeFlags.Leaf;
+            }
 
             if (isDirectory)
             {
-                bool needOpen = ImGui.TreeNodeEx(Path.GetFileName(info.Path), node.children.Count > 0 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.Leaf);
+                bool needOpen = ImGui.TreeNodeEx(info.Name, flags);
                 
+                // 左键点击选择
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                {
+                    selectedFile = node;
+                }
+                
+                // 右键菜单
                 if (ImGui.BeginPopupContextItem("context"))
                 {
-                    if (ImGui.MenuItem("ReName"))
+                    // 在资源管理器打开文件夹
+                    if (ImGui.MenuItem("Open"))
                     {
-                        
-                    }
-                    
-                    if (ImGui.MenuItem("Create Folder"))
-                    {
-                        
-                    }
-                    
-                    if (ImGui.MenuItem("Remove"))
-                    {
-                        
+                        Process.Start("explorer.exe", $"/select,\"{info.Path}\"");
                     }
                     
                     ImGui.EndPopup();
@@ -185,28 +210,35 @@ public class UiRenderPass : RenderPass
 
                 if (needOpen)
                 {
-                    for(int i = node.children.Count - 1; i >= 0; --i)
+                    for(int i = node.Children.Count - 1; i >= 0; --i)
                     {
-                        var child = node.children[i];
-                        DrawAsset(child);
+                        var child = node.Children[i];
+                        DrawAsset(child, ref selectedFile);
                     }   
                     ImGui.TreePop();
                 }
             }
             else // isFile
             {
-                bool needOpen = ImGui.TreeNodeEx(Path.GetFileName(info.Path), ImGuiTreeNodeFlags.Leaf);
+                bool needOpen = ImGui.TreeNodeEx(info.Name, flags);
                 
+                // 左键点击选择
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                {
+                    selectedFile = node;
+                }
+                
+                // 右键菜单
                 if (ImGui.BeginPopupContextItem("context"))
                 {
-                    if (ImGui.MenuItem("ReName"))
+                    // 使用默认方式打开文件
+                    if (ImGui.MenuItem("Open"))
                     {
-                        
-                    }
-                    
-                    if (ImGui.MenuItem("Remove"))
-                    {
-                        
+                        Process.Start(new ProcessStartInfo()
+                        {
+                            FileName = info.Path,
+                            UseShellExecute = true,
+                        });
                     }
                     
                     ImGui.EndPopup();
@@ -252,7 +284,7 @@ public class UiRenderPass : RenderPass
             }
             else
             {
-                bool nodeOpen = ImGui.TreeNodeEx($"{info.gameObject.name}##{node.GetHashCode()}", node.children.Count > 0 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.Leaf);
+                bool nodeOpen = ImGui.TreeNodeEx($"{info.gameObject.name}##{node.GetHashCode()}", node.Children.Count > 0 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.Leaf);
 
                 if (ImGui.BeginPopupContextItem("context"))
                 {
@@ -265,12 +297,12 @@ public class UiRenderPass : RenderPass
                 
                     if (ImGui.MenuItem("Add"))
                     {
-                        node.AddChild(new Scene.SceneObjectInfo(new GameObject() { name = $"Game Object {node.children.Count + 1}" }));
+                        node.AddChild(new Scene.SceneObjectInfo(new GameObject() { name = $"Game Object {node.Children.Count + 1}" }));
                     }
 
                     if (ImGui.MenuItem("Remove"))
                     {
-                        var parent = node.parent;
+                        var parent = node.Parent;
                         if (parent != null)
                         {
                             parent.RemoveChild(node);
@@ -282,9 +314,9 @@ public class UiRenderPass : RenderPass
             
                 if (nodeOpen)
                 {
-                    for (int i = node.children.Count - 1; i >= 0; i--)
+                    for (int i = node.Children.Count - 1; i >= 0; i--)
                     {
-                        var child = node.children[i];
+                        var child = node.Children[i];
                         DrawScene(child, ref renameInfo, ref renameBuffer);
                     }
                     ImGui.TreePop();
@@ -340,7 +372,8 @@ public class UiRenderPass : RenderPass
     private readonly List<DebugEvent> debugInfos;
     #endregion
     #region Asset
-    private readonly FileSystem fileSystem = new FileSystem($"{Define.BasePath}/Sandbox/Asset");
+    private TreeNode<FileSystem.FileInfo> selectedFile;
+    private readonly FileSystem fileSystem = new FileSystem($"{Define.BasePath}\\Sandbox\\Asset");
     #endregion
     #region Scene
     private Scene.SceneObjectInfo renameInfo = null;
@@ -357,7 +390,7 @@ public class UiRenderPass : RenderPass
     
     private class WindowResizeEventHandler : AEvent<WindowResizeEvent>
     {
-        private readonly ImGuiController uiRenderer;
+        private readonly ImGuiController uiRenderer; // TODO 不应该有状态
 
         public WindowResizeEventHandler(ImGuiController uiRenderer)
         {
@@ -373,7 +406,7 @@ public class UiRenderPass : RenderPass
     
     private class DebugEventHandler : AEvent<DebugEvent>
     {
-        private readonly List<DebugEvent> debugInfos;
+        private readonly List<DebugEvent> debugInfos; // TODO 不应该有状态
 
         public DebugEventHandler(List<DebugEvent> debugInfos)
         {

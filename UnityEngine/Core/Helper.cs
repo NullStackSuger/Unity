@@ -2,7 +2,7 @@ using System.Text;
 
 namespace UnityEngine
 {
-    public static partial class Tools
+    public static partial class Helper
     {
         public static byte[] ReadFileBytes(string path)
         {
