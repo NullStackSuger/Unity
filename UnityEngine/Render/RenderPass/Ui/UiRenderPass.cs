@@ -373,12 +373,12 @@ public class UiRenderPass : RenderPass
     #endregion
     #region Asset
     private TreeNode<FileSystem.FileInfo> selectedFile;
-    private readonly FileSystem fileSystem = new FileSystem($"{Define.BasePath}\\Sandbox\\Asset");
+    private readonly FileSystem fileSystem = new FileSystem($"{Define.BasePath}\\Sandbox\\Asset"); // TODO 不应该由UiRenderPass持有FileSystem
     #endregion
     #region Scene
     private Scene.SceneObjectInfo renameInfo = null;
     private byte[] renameBuffer = null;
-    private readonly Scene scene = new Scene("Default Scene");
+    private readonly Scene scene = new Scene("Default Scene"); // TODO 不应该由UiRenderPass持有Scene
     #endregion
     #region Editor
     private readonly Texture objectsRender;

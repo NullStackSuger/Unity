@@ -13,9 +13,9 @@ public class ObjectsRenderPass : RenderPass
         // 更新输入信息
         mvpUniform = new MVPUniform()
         {
-            model = Helper.Model(new Vector3(0f, 0f, 5f), new Vector3(Helper.ToRadians(45f), 0f, Helper.ToRadians(45f)), Vector3.One),
+            model = Helper.Model(new Vector3(0f, 0f, 5f), Helper.ToQuaternion(new Vector3(45f, 0f, 45f)), Vector3.One),
             view = Helper.View(new Vector3(0f, 0f, -2.5f)),
-            projection = Helper.Perspective(Helper.ToRadians(50.0f), (float)width / (float)height, 0.1f, 100.0f)
+            projection = Helper.Perspective(50 * Helper.degToRad, (float)width / (float)height, 0.1f, 100.0f)
         };
         Helper.LoadObj("Objs/cube", out indices, out var positions, out var uvs, out var normals);
         vertices = new Vertex[positions.Length];

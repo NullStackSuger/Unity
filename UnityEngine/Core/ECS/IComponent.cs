@@ -16,6 +16,13 @@ public abstract class MonoBehaviour : IComponent, IComponentAwake, IComponentUpd
     {
         
     }
+
+    ~MonoBehaviour()
+    {
+        this.gameObject = null;
+    }
+
+    public GameObject gameObject { get; internal set; }
 }
 
 public interface IComponent
@@ -23,14 +30,14 @@ public interface IComponent
     
 }
 
-public interface IComponentUpdate
-{
-    void OnUpdate();
-}
-
 public interface IComponentAwake
 {
     void OnAwake();
+}
+
+public interface IComponentUpdate
+{
+    void OnUpdate();
 }
 
 public interface IComponentDestroy

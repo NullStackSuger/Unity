@@ -6,35 +6,25 @@ namespace UnityEngine;
 
 public static partial class Helper
 {
-    internal static float ToRadians(float degrees)
-    {
-        return (float)Math.PI * degrees / 180.0f;
-    }
+    public const float degToRad = (float)Math.PI / 180.0f;
 
-    internal static float ToDegrees(float radians)
+    public static Quaternion ToQuaternion(Vector3 angles)
     {
-        return radians * 180.0f / (float)Math.PI;
+        Vector3 rad = angles * degToRad;
+        Quaternion rotX = Quaternion.CreateFromAxisAngle(Vector3.UnitX, rad.X);
+        Quaternion rotY = Quaternion.CreateFromAxisAngle(Vector3.UnitY, rad.Y);
+        Quaternion rotZ = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rad.Z);
+        return rotY * rotX * rotZ;
     }
-
-    internal static Matrix4x4 Model(Vector3 position, Vector3 rotation, Vector3 scale)
+    
+    // TODO
+    internal static Matrix4x4 Model(Vector3 position, Quaternion rotation, Vector3 scale)
     {
-        float c3 = MathF.Cos(rotation.Z);
-        float s3 = MathF.Sin(rotation.Z);
-        float c2 = MathF.Cos(rotation.X);
-        float s2 = MathF.Sin(rotation.X);
-        float c1 = MathF.Cos(rotation.Y);
-        float s1 = MathF.Sin(rotation.Y);
-        return new Matrix4x4
-        (
-            scale.X * (c1 * c3 + s1 * s2 * s3), scale.X * (c2 * s3), scale.X * (c1 * s2 * s3 - c3 * s1), 0.0f,
-            scale.Y * (c3 * s1 * s2 - c1 * s3), scale.Y * (c2 * c3), scale.Y * (c1 * c3 * s2 + s1 * s3), 0.0f,
-            scale.Z * (c2 * s1), scale.Z * -s2, scale.Z * (c1 * c2), 0.0f,
-            position.X, position.Y, position.Z, 1.0f
-        );
+        return Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(position);
     }
     internal static Matrix4x4 Model(Vector3 position)
     {
-        return Model(position, Vector3.Zero, Vector3.One);
+        return Model(position, Quaternion.Zero, Vector3.One);
     }
 
     internal static Matrix4x4 View(Vector3 position, Vector3 rotation)
