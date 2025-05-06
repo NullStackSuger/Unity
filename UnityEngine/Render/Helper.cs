@@ -7,24 +7,51 @@ namespace UnityEngine;
 public static partial class Helper
 {
     public const float degToRad = (float)Math.PI / 180.0f;
+    public const float rad2Deg = 180f / MathF.PI;
 
-    public static Quaternion ToQuaternion(Vector3 angles)
+    public static Quaternion ToQuaternion(this Vector3 angles)
     {
         Vector3 rad = angles * degToRad;
         Quaternion rotX = Quaternion.CreateFromAxisAngle(Vector3.UnitX, rad.X);
         Quaternion rotY = Quaternion.CreateFromAxisAngle(Vector3.UnitY, rad.Y);
         Quaternion rotZ = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rad.Z);
-        return rotY * rotX * rotZ;
+        return Quaternion.Normalize(rotY * rotX * rotZ);
+    }
+
+    public static Vector3 ToVector3(this Quaternion q)
+    {
+        q = Quaternion.Normalize(q);
+
+        float x, y, z;
+
+        // sin(pitch)
+        float sinp = 2f * (q.W * q.X - q.Z * q.Y);
+        if (MathF.Abs(sinp) >= 1f)
+            x = MathF.CopySign(MathF.PI / 2f, sinp); // 极值时为 ±90°
+        else
+            x = MathF.Asin(sinp); // pitch（X轴）
+
+        // yaw (Y轴)
+        float siny_cosp = 2f * (q.W * q.Y + q.Z * q.X);
+        float cosy_cosp = 1f - 2f * (q.X * q.X + q.Y * q.Y);
+        y = MathF.Atan2(siny_cosp, cosy_cosp);
+
+        // roll (Z轴)
+        float sinr_cosp = 2f * (q.W * q.Z + q.X * q.Y);
+        float cosr_cosp = 1f - 2f * (q.Y * q.Y + q.Z * q.Z);
+        z = MathF.Atan2(sinr_cosp, cosr_cosp);
+
+        return new Vector3(x, y, z) * rad2Deg;
     }
     
-    // TODO
+    // TODO MVP应由GameObject,Camera,Window计算
     internal static Matrix4x4 Model(Vector3 position, Quaternion rotation, Vector3 scale)
     {
         return Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(position);
     }
     internal static Matrix4x4 Model(Vector3 position)
     {
-        return Model(position, Quaternion.Zero, Vector3.One);
+        return Model(position, Quaternion.Identity, Vector3.One);
     }
 
     internal static Matrix4x4 View(Vector3 position, Vector3 rotation)
@@ -75,12 +102,14 @@ public static partial class Helper
 
         float tanHalfFovY = MathF.Tan(fovY / 2.0f);
         
-        Matrix4x4 mat = new Matrix4x4();
-        mat[0, 0] = 1.0f / (aspect * tanHalfFovY);
-        mat[1, 1] = 1.0f / tanHalfFovY;
-        mat[2, 2] = far / (far - near);
-        mat[2, 3] = 1.0f;
-        mat[3, 2] = -(far * near) / (far - near);
+        Matrix4x4 mat = new Matrix4x4
+        {
+            [0, 0] = 1.0f / (aspect * tanHalfFovY),
+            [1, 1] = 1.0f / tanHalfFovY,
+            [2, 2] = far / (far - near),
+            [2, 3] = 1.0f,
+            [3, 2] = -(far * near) / (far - near)
+        };
         return mat;
     }
 

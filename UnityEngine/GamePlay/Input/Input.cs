@@ -9,139 +9,109 @@ public static class Input
 {
     static Input()
     {
-        window = Window.window;
+        foreach (Key key in Enum.GetValues(typeof(Key)))
+        {
+            keyStates[key] = InputState.LongTimeUp;
+        }
+
+        foreach (MouseButton mouse in Enum.GetValues(typeof(MouseButton)))
+        {
+            mouseStates[mouse] = InputState.LongTimeUp;
+        }
     }
     
     public static void Tick(InputSnapshot snapshot)
     {
         Snapshot = snapshot;
 
-        foreach (MouseEvent mouseEvent in snapshot.MouseEvents)
+        foreach (Key key in waitToLongTimeUpKeys)
         {
-            if (mouseEvent.Down) Down(mouseEvent.MouseButton);
-            else Up(mouseEvent.MouseButton);
+            keyStates[key] = InputState.LongTimeUp;
         }
+        waitToLongTimeUpKeys.Clear();
+        
+        foreach (MouseButton mouse in waitToLongTimeUpMouses)
+        {
+            mouseStates[mouse] = InputState.LongTimeUp;
+        }
+        waitToLongTimeUpMouses.Clear();
 
+        foreach (Key key in waitToLongTimeDownKeys)
+        {
+            keyStates[key] = InputState.LongTimeDown;
+        }
+        waitToLongTimeDownKeys.Clear();
+
+        foreach (MouseButton mouse in waitToLongTimeDownMouses)
+        {
+            mouseStates[mouse] = InputState.LongTimeDown;
+        }
+        waitToLongTimeDownMouses.Clear();
+        
         foreach (KeyEvent keyEvent in snapshot.KeyEvents)
         {
-            if (keyEvent.Down) Down(keyEvent.Key);
-            else Up(keyEvent.Key);
+            Key key = keyEvent.Key;
+            bool needDown = keyEvent.Down;
+            
+            if (needDown)
+            {
+                // TODO SDL_ERROR, 我16帧按住A, 16帧时KeyEvents里有A, 之后直到21帧, KeyEvents才再次包含A
+                // 下面的Mouse也是同理
+                //keyStates[key] = (keyStates[key] == InputState.Down || keyStates[key] == InputState.LongTimeDown) ? InputState.LongTimeDown : InputState.Down;
+                if (keyStates[key] == InputState.Up || keyStates[key] == InputState.LongTimeUp)
+                {
+                    keyStates[key] = InputState.Down;
+                    waitToLongTimeDownKeys.Add(key);
+                }
+            }
+            else
+            {
+                keyStates[key] = InputState.Up;
+                waitToLongTimeUpKeys.Add(key);
+            }
         }
+
+        foreach (MouseEvent mouseEvent in snapshot.MouseEvents)
+        {
+            MouseButton mouse = mouseEvent.MouseButton;
+            bool needDown = mouseEvent.Down;
+            
+            if (needDown)
+            {
+                if (mouseStates[mouse] == InputState.Up || mouseStates[mouse] == InputState.LongTimeUp)
+                {
+                    mouseStates[mouse] = InputState.Down;
+                    waitToLongTimeDownMouses.Add(mouse);
+                }
+            }
+            else
+            {
+                mouseStates[mouse] = InputState.Up;
+                waitToLongTimeUpMouses.Add(mouse);
+            }
+        }
+    }
+
+    public static InputState Get(Key key)
+    {
+        return keyStates[key];
+    }
+    public static InputState Get(MouseButton mouse)
+    {
+        return mouseStates[mouse];
     }
     
-    public static Vector2 MousePosition => Snapshot.MousePosition;
-    public static Vector2 MouseOffset => window.MouseDelta;
-
-    public static InputState GetMouseButton(MouseButton button)
-    {
-        return mouseButtons[button];
-    }
-    public static bool GetMouseButton(MouseButton button, InputState state)
-    {
-        return mouseButtons[button] == state;   
-    }
-    public static InputState GetKeyButton(Key key)
-    {
-        return keyButtons[key];
-    }
-    public static bool GetKeyButton(Key key, InputState state)
-    {
-        return keyButtons[key] == state;   
-    }
-    /// <summary>
-    /// 鼠标按键被按下
-    /// </summary>
-    private static void Down(MouseButton button)
-    {
-        if (mouseButtons.TryAdd(button, InputState.Down)) return;
-
-        switch (mouseButtons[button])
-        {
-            case InputState.Up:
-                mouseButtons[button] = InputState.Down;
-                EventSystem.PublishAsync(new InputMouseEvent() { button = button, state = InputState.Down });
-                break;
-            case InputState.Down:
-                mouseButtons[button] = InputState.Press;
-                EventSystem.PublishAsync(new InputMouseEvent() { button = button, state = InputState.Press });
-                break;
-            case InputState.Press:
-                EventSystem.PublishAsync(new InputMouseEvent() { button = button, state = InputState.Press });
-                break;
-        }
-    }
-    /// <summary>
-    /// 鼠标按键被抬起
-    /// </summary>
-    private static void Up(MouseButton button)
-    {
-        if (mouseButtons.TryAdd(button, InputState.Up)) return;
-        
-        switch (mouseButtons[button])
-        {
-            case InputState.Up:
-                break;
-            case InputState.Down:
-                mouseButtons[button] = InputState.Up;
-                EventSystem.PublishAsync(new InputMouseEvent() { button = button, state = InputState.Up });
-                break;
-            case InputState.Press:
-                mouseButtons[button] = InputState.Up;
-                EventSystem.PublishAsync(new InputMouseEvent() { button = button, state = InputState.Up });
-                break;
-        }
-    }
-    /// <summary>
-    /// 键盘按键被按下
-    /// </summary>
-    private static void Down(Key button)
-    {
-        if (keyButtons.TryAdd(button, InputState.Down)) return;
-        
-        switch (keyButtons[button])
-        {
-            case InputState.Up:
-                keyButtons[button] = InputState.Down;
-                EventSystem.PublishAsync(new InputKeyEvent() { button = button, state = InputState.Down });
-                break;
-            case InputState.Down:
-                keyButtons[button] = InputState.Press;
-                EventSystem.PublishAsync(new InputKeyEvent() { button = button, state = InputState.Press });
-                break;
-            case InputState.Press:
-                EventSystem.PublishAsync(new InputKeyEvent() { button = button, state = InputState.Press });
-                break;
-        }
-    }
-    /// <summary>
-    /// 键盘按键被抬起
-    /// </summary>
-    private static void Up(Key button)
-    {
-        if (keyButtons.TryAdd(button, InputState.Up)) return;
-        
-        switch (keyButtons[button])
-        {
-            case InputState.Up:
-                break;
-            case InputState.Down:
-                keyButtons[button] = InputState.Up;
-                EventSystem.PublishAsync(new InputKeyEvent() { button = button, state = InputState.Up });
-                break;
-            case InputState.Press:
-                keyButtons[button] = InputState.Up;
-                EventSystem.PublishAsync(new InputKeyEvent() { button = button, state = InputState.Up });
-                break;
-        }
-    }
-    private static readonly Dictionary<MouseButton, InputState> mouseButtons = new();
-    private static readonly Dictionary<Key, InputState> keyButtons = new();
+    private static readonly Dictionary<Key, InputState> keyStates = new();
+    private static readonly HashSet<Key> waitToLongTimeUpKeys = new();
+    private static readonly HashSet<Key> waitToLongTimeDownKeys = new();
+    private static readonly Dictionary<MouseButton, InputState> mouseStates = new();
+    private static readonly HashSet<MouseButton> waitToLongTimeUpMouses = new();
+    private static readonly HashSet<MouseButton> waitToLongTimeDownMouses = new();
     
     public static InputSnapshot Snapshot { get; private set; }
-    private static readonly Sdl2Window window;
-}
-
-public enum InputState
-{
-    Down, Up, Press
+    
+    public enum InputState
+    {
+        Up, Down, LongTimeDown, LongTimeUp
+    }
 }

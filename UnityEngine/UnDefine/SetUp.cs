@@ -11,12 +11,14 @@ public static class SetUp
         _ = nameof(RenderSystem);
     }
 
-    public static void Run()
+    public static async void Run()
     {
         while (window.Exists)
         {
             LogicSystem.Tick();
             RenderSystem.Tick();
+            
+            Task.Delay(100).Wait();
         }
     }
     

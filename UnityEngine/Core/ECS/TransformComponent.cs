@@ -1,9 +1,18 @@
+using System.Diagnostics;
 using System.Numerics;
+using ImGuiNET;
 
 namespace UnityEngine;
 
 public class TransformComponent : MonoBehaviour
 {
+    public TransformComponent()
+    {
+        position = Vector3.Zero;
+        rotation = Quaternion.Identity;
+        scale = Vector3.One;
+    }
+    
     public Vector3 position { get; private set; }
     public Quaternion rotation { get; private set; }
     public Vector3 scale { get; private set; }
@@ -52,5 +61,34 @@ public class TransformComponent : MonoBehaviour
             }
             return matrix;
         }
+    }
+    
+    public override void DrawSetting()
+    {
+        Vector3 position = this.position;
+        ImGui.Text("Position");
+        if (ImGui.DragFloat3("##Position", ref position))
+        {
+            this.position = position;
+        }
+        
+        Vector3 rotation = this.rotation.ToVector3();
+        ImGui.Text("Rotation");
+        if (ImGui.DragFloat3("##Rotation", ref rotation))
+        {
+            this.rotation = rotation.ToQuaternion();
+        }
+        
+        Vector3 scale = this.scale;
+        ImGui.Text("Scale");
+        if (ImGui.DragFloat3("##Scale", ref scale))
+        {
+            this.scale = scale;
+        }
+    }
+
+    public override string ToString()
+    {
+        return nameof(TransformComponent);
     }
 }

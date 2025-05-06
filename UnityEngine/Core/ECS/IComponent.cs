@@ -1,6 +1,6 @@
 namespace UnityEngine;
 
-public abstract class MonoBehaviour : IComponent, IComponentAwake, IComponentUpdate, IComponentDestroy
+public abstract class MonoBehaviour : IComponent, IComponentAwake, IComponentUpdate, IComponentDestroy, IComponentDrawSetting
 {
     public virtual void OnAwake()
     {
@@ -13,6 +13,11 @@ public abstract class MonoBehaviour : IComponent, IComponentAwake, IComponentUpd
     }
 
     public virtual void OnDestroy()
+    {
+        
+    }
+    
+    public virtual void DrawSetting()
     {
         
     }
@@ -43,4 +48,12 @@ public interface IComponentUpdate
 public interface IComponentDestroy
 {
     void OnDestroy();
+}
+
+/// <summary>
+/// 在Setting面板如何显示
+/// </summary>
+public interface IComponentDrawSetting
+{
+    void DrawSetting();
 }

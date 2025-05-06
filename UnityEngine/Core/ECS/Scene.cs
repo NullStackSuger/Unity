@@ -21,7 +21,10 @@ public class Scene
     {
         return scene?.root;
     }
-
+    public static implicit operator SceneObjectInfo(Scene scene)
+    {
+        return scene?.root?.Value;
+    }
     public static implicit operator GameObject(Scene scene)
     {
         return scene?.root?.Value?.gameObject;
@@ -34,6 +37,11 @@ public class Scene
         public SceneObjectInfo(GameObject gameObject)
         {
             this.gameObject = gameObject;
+        }
+
+        public static implicit operator GameObject(SceneObjectInfo info)
+        {
+            return info.gameObject;
         }
     }
 }

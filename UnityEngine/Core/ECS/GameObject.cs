@@ -51,6 +51,7 @@ public class GameObject
     }
     
     private readonly Dictionary<Type, MonoBehaviour> components = new();
+    public IReadOnlyDictionary<Type, MonoBehaviour> Components => components;
     #endregion
 
     #region Parent & Children

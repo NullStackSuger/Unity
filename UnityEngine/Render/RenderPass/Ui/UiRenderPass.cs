@@ -122,7 +122,7 @@ public class UiRenderPass : RenderPass
             }
             else
             {
-                level &= ~DebugLevel.Info;
+                level &= ~DebugLevel.Warning;
             }
             
             ImGui.Checkbox("Error", ref showError);
@@ -132,7 +132,7 @@ public class UiRenderPass : RenderPass
             }
             else
             {
-                level &= ~DebugLevel.Info;
+                level &= ~DebugLevel.Error;
             }
             
             if (ImGui.Button("Clear"))
@@ -167,7 +167,7 @@ public class UiRenderPass : RenderPass
         DrawAsset(fileSystem, ref selectedFile);
         ImGui.End();
 
-        static void DrawAsset(TreeNode<FileSystem.FileInfo> node, ref TreeNode<FileSystem.FileInfo> selectedFile)
+        static void DrawAsset(TreeNode<FileSystem.FileInfo> node, ref FileSystem.FileInfo selectedFile)
         {
             FileSystem.FileInfo info = node;
             bool isDirectory = info.IsDirectory;
@@ -177,7 +177,7 @@ public class UiRenderPass : RenderPass
             ImGui.PushID(info.Path);
             
             var flags = ImGuiTreeNodeFlags.None;
-            if (selectedFile != null && selectedFile.Value.Path == info.Path)
+            if (selectedFile != null && selectedFile.Path == info.Path)
             {
                 flags |= ImGuiTreeNodeFlags.Selected;
             }
@@ -338,7 +338,21 @@ public class UiRenderPass : RenderPass
         #endregion
         #region Setting
         ImGui.Begin("Setting");
+        selectedObject = scene;
+        DrawSettingObject(selectedObject);
         ImGui.End();
+        
+        static void DrawSettingObject(Scene.SceneObjectInfo selectedObject)
+        {
+            GameObject gameObject = selectedObject;
+            foreach (MonoBehaviour component in gameObject.Components.Values)
+            {
+                if (ImGui.CollapsingHeader(component.ToString(), ImGuiTreeNodeFlags.DefaultOpen))
+                {
+                    component.DrawSetting();
+                }   
+            }
+        }
         #endregion
         
         uiRenderer.Render(device, commandList);
@@ -372,10 +386,11 @@ public class UiRenderPass : RenderPass
     private readonly List<DebugEvent> debugInfos;
     #endregion
     #region Asset
-    private TreeNode<FileSystem.FileInfo> selectedFile;
+    private FileSystem.FileInfo selectedFile;
     private readonly FileSystem fileSystem = new FileSystem($"{Define.BasePath}\\Sandbox\\Asset"); // TODO 不应该由UiRenderPass持有FileSystem
     #endregion
     #region Scene
+    private Scene.SceneObjectInfo selectedObject;
     private Scene.SceneObjectInfo renameInfo = null;
     private byte[] renameBuffer = null;
     private readonly Scene scene = new Scene("Default Scene"); // TODO 不应该由UiRenderPass持有Scene

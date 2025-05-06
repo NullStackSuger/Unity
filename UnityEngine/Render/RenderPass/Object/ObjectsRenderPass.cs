@@ -13,7 +13,7 @@ public class ObjectsRenderPass : RenderPass
         // 更新输入信息
         mvpUniform = new MVPUniform()
         {
-            model = Helper.Model(new Vector3(0f, 0f, 5f), Helper.ToQuaternion(new Vector3(45f, 0f, 45f)), Vector3.One),
+            model = Helper.Model(new Vector3(0f, 0f, 5f), new Vector3(45f, 0f, 45f).ToQuaternion(), Vector3.One),
             view = Helper.View(new Vector3(0f, 0f, -2.5f)),
             projection = Helper.Perspective(50 * Helper.degToRad, (float)width / (float)height, 0.1f, 100.0f)
         };

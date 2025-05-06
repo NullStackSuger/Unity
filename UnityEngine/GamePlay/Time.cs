@@ -17,6 +17,7 @@ public static class Time
     }
     
     public static DateTime Now => DateTime.Now;
+    public static float NowFormPlay => (float)(Now - startTime).TotalSeconds;
     public static float DeltaTime => (float)deltaTime.TotalSeconds;
 
     private static TimeSpan deltaTime;

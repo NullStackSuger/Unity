@@ -12,7 +12,7 @@ public class FileSystem
         EventSystem.PublishAsync(new FileRebuildEvent(){ node = root });
     }
     
-    static void BuildNode(TreeNode<FileInfo> node)
+    private static void BuildNode(TreeNode<FileInfo> node)
     {
         FileInfo info = node;
         bool isDirectory = info.IsDirectory;
@@ -29,7 +29,15 @@ public class FileSystem
 
     public static implicit operator TreeNode<FileInfo>(FileSystem fileSystem)
     {
-        return fileSystem.root;
+        return fileSystem?.root;
+    }
+    public static implicit operator FileInfo(FileSystem fileSystem)
+    {
+        return fileSystem?.root?.Value;
+    }
+    public static implicit operator string(FileSystem fileSystem)
+    {
+        return fileSystem?.root?.Value?.Path;
     }
         
     public class FileInfo
@@ -42,6 +50,11 @@ public class FileSystem
         public FileInfo(string path)
         {
             this.Path = path;
+        }
+
+        public static implicit operator string(FileInfo info)
+        {
+            return info.Path;
         }
     }
     
