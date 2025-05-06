@@ -3,7 +3,6 @@ using UnityEngine.Events;
 
 namespace UnityEngine
 {
-    // TODO 需要替换成NLog
     public static class Debug
     {
         static Debug()

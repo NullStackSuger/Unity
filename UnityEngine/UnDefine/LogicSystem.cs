@@ -8,28 +8,18 @@ public static class LogicSystem
     static LogicSystem()
     {
         window = Window.window;
+        fileSystem = new FileSystem($"{Define.BasePath}\\Sandbox\\Asset");
+        scene = new Scene("Default Scene");
     }
 
     public static void Tick()
     {
         Time.Tick();
         Input.Tick(window.PumpEvents());
-        
-        if (Input.Get(MouseButton.Right) == Input.InputState.Down)
-        {
-            Debug.Warning("Down");
-        }
-
-        if (Input.Get(MouseButton.Right) == Input.InputState.Up)
-        {
-            Debug.Warning("Up");
-        }
-        
-        if (Input.Get(MouseButton.Right) == Input.InputState.LongTimeDown)
-        {
-            Debug.Log("LongTimeDown");
-        }
+        scene.Tick();
     }
     
     private static readonly Sdl2Window window;
+    public static readonly FileSystem fileSystem;
+    private static readonly Scene scene;
 }

@@ -239,12 +239,10 @@ namespace ImGuiNET
         private byte[] GetEmbeddedResourceBytes(string resourceName)
         {
             Assembly assembly = typeof(ImGuiController).Assembly;
-            using (Stream s = assembly.GetManifestResourceStream(resourceName))
-            {
-                byte[] ret = new byte[s.Length];
-                s.Read(ret, 0, (int)s.Length);
-                return ret;
-            }
+            using Stream s = assembly.GetManifestResourceStream(resourceName);
+            byte[] ret = new byte[s.Length];
+            _ = s.Read(ret, 0, (int)s.Length);
+            return ret;
         }
 
         /// <summary>

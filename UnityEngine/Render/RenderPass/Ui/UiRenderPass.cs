@@ -154,7 +154,7 @@ public class UiRenderPass : RenderPass
         {
             selectedFile = null;
         }
-        // 
+        // Build
         if (ImGui.BeginMenuBar())
         {
             if (ImGui.Button("Rebuild"))
@@ -176,7 +176,7 @@ public class UiRenderPass : RenderPass
             
             ImGui.PushID(info.Path);
             
-            var flags = ImGuiTreeNodeFlags.None;
+            var flags = ImGuiTreeNodeFlags.DefaultOpen;
             if (selectedFile != null && selectedFile.Path == info.Path)
             {
                 flags |= ImGuiTreeNodeFlags.Selected;
@@ -254,17 +254,33 @@ public class UiRenderPass : RenderPass
         }
         #endregion
         #region Scene
-        ImGui.Begin("Scene");
-        DrawScene(scene, ref renameInfo, ref renameBuffer);
+        ImGui.Begin("Scene", ImGuiWindowFlags.MenuBar);
+        // 点击空白清空选中Object
+        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsAnyItemHovered())
+        {
+            selectedObject = null;
+        }
+        // Build
+        if (ImGui.BeginMenuBar())
+        {
+            if (ImGui.Button("Rebuild"))
+            {
+                EventSystem.PublishAsync(new SceneRebuildEvent(){ node = scene });
+            }
+            
+            ImGui.EndMenuBar();
+        }
+        DrawScene(scene, ref renameInfo, ref renameBuffer, ref selectedObject);
         ImGui.End();
 
-        static void DrawScene(TreeNode<Scene.SceneObjectInfo> node, ref Scene.SceneObjectInfo renameInfo, ref byte[] renameBuffer)
+        static void DrawScene(TreeNode<Scene.SceneObjectInfo> node, ref Scene.SceneObjectInfo renameInfo, ref byte[] renameBuffer, ref Scene.SceneObjectInfo selectedObject)
         {
             ImGui.PushID(node.GetHashCode());
 
             Scene.SceneObjectInfo info = node;
 
-            if (renameInfo == info)
+            // 重命名
+            if (renameInfo != null && renameInfo == info)
             {
                 if (ImGui.InputText("##rename", renameBuffer, (uint)renameBuffer.Length, ImGuiInputTextFlags.EnterReturnsTrue))
                 {
@@ -284,8 +300,25 @@ public class UiRenderPass : RenderPass
             }
             else
             {
-                bool nodeOpen = ImGui.TreeNodeEx($"{info.gameObject.name}##{node.GetHashCode()}", node.Children.Count > 0 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.Leaf);
+                var flags = ImGuiTreeNodeFlags.DefaultOpen;
+                if (selectedObject != null && selectedObject.gameObject.GetHashCode() == info.gameObject.GetHashCode())
+                {
+                    flags |= ImGuiTreeNodeFlags.Selected;
+                }
+                if (node.Children.Count <= 0)
+                {
+                    flags |= ImGuiTreeNodeFlags.Leaf;
+                }
+                
+                bool nodeOpen = ImGui.TreeNodeEx($"{info.gameObject.name}##{node.GetHashCode()}", flags);
+                
+                // 左键点击选择
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                {
+                    selectedObject = node;
+                }
 
+                // 右键菜单
                 if (ImGui.BeginPopupContextItem("context"))
                 {
                     if (ImGui.MenuItem("ReName"))
@@ -297,16 +330,16 @@ public class UiRenderPass : RenderPass
                 
                     if (ImGui.MenuItem("Add"))
                     {
-                        node.AddChild(new Scene.SceneObjectInfo(new GameObject() { name = $"Game Object {node.Children.Count + 1}" }));
+                        GameObject gameObject = new GameObject($"Game Object {node.Children.Count + 1}")
+                        {
+                            Parent = node.Value
+                        };
                     }
 
                     if (ImGui.MenuItem("Remove"))
                     {
-                        var parent = node.Parent;
-                        if (parent != null)
-                        {
-                            parent.RemoveChild(node);
-                        }
+                        GameObject obj = node.Value;
+                        obj.Dispose();
                     }
                 
                     ImGui.EndPopup();
@@ -317,7 +350,7 @@ public class UiRenderPass : RenderPass
                     for (int i = node.Children.Count - 1; i >= 0; i--)
                     {
                         var child = node.Children[i];
-                        DrawScene(child, ref renameInfo, ref renameBuffer);
+                        DrawScene(child, ref renameInfo, ref renameBuffer, ref selectedObject);
                     }
                     ImGui.TreePop();
                 }
@@ -338,18 +371,22 @@ public class UiRenderPass : RenderPass
         #endregion
         #region Setting
         ImGui.Begin("Setting");
-        selectedObject = scene;
-        DrawSettingObject(selectedObject);
+        if (selectedObject != null)
+        {
+            DrawSettingObject(selectedObject);
+        }
         ImGui.End();
         
         static void DrawSettingObject(Scene.SceneObjectInfo selectedObject)
         {
             GameObject gameObject = selectedObject;
+            ImGui.Text(gameObject.name);
             foreach (MonoBehaviour component in gameObject.Components.Values)
             {
                 if (ImGui.CollapsingHeader(component.ToString(), ImGuiTreeNodeFlags.DefaultOpen))
                 {
                     component.DrawSetting();
+                    ImGui.NewLine();
                 }   
             }
         }
@@ -387,13 +424,13 @@ public class UiRenderPass : RenderPass
     #endregion
     #region Asset
     private FileSystem.FileInfo selectedFile;
-    private readonly FileSystem fileSystem = new FileSystem($"{Define.BasePath}\\Sandbox\\Asset"); // TODO 不应该由UiRenderPass持有FileSystem
+    private readonly FileSystem fileSystem = LogicSystem.fileSystem;
     #endregion
     #region Scene
     private Scene.SceneObjectInfo selectedObject;
     private Scene.SceneObjectInfo renameInfo = null;
     private byte[] renameBuffer = null;
-    private readonly Scene scene = new Scene("Default Scene"); // TODO 不应该由UiRenderPass持有Scene
+    private readonly Scene scene = Scene.ActiveScene;
     #endregion
     #region Editor
     private readonly Texture objectsRender;

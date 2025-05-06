@@ -54,35 +54,16 @@ public static partial class Helper
         return Model(position, Quaternion.Identity, Vector3.One);
     }
 
-    internal static Matrix4x4 View(Vector3 position, Vector3 rotation)
+    internal static Matrix4x4 View(Vector3 position, Quaternion rotation)
     {
-        float c3 = MathF.Cos(rotation.Z);
-        float s3 = MathF.Sin(rotation.Z);
-        float c2 = MathF.Cos(rotation.X);
-        float s2 = MathF.Sin(rotation.X);
-        float c1 = MathF.Cos(rotation.Y);
-        float s1 = MathF.Sin(rotation.Y);
-        Vector3 u = new Vector3((c1 * c3 + s1 * s2 * s3), (c2 * s3), (c1 * s2 * s3 - c3 * s1));
-        Vector3 v = new Vector3((c3 * s1 * s2 - c1 * s3), (c2 * c3), (c1 * c3 * s2 + s1 * s3));
-        Vector3 w = new Vector3((c2 * s1), (-s2), (c1 * c2));
-        Matrix4x4 mat = Matrix4x4.Identity;
-        mat[0, 0] = u.X;
-        mat[1, 0] = u.Y;
-        mat[2, 0] = u.Z;
-        mat[0, 1] = v.X;
-        mat[1, 1] = v.Y;
-        mat[2, 1] = v.Z;
-        mat[0, 2] = w.X;
-        mat[1, 2] = w.Y;
-        mat[2, 2] = w.Z;
-        mat[3, 0] = -Vector3.Dot(u, position);
-        mat[3, 1] = -Vector3.Dot(v, position);
-        mat[3, 2] = -Vector3.Dot(w, position);
-        return mat;
+        // 相机的 forward 是 -Z 轴方向
+        Vector3 forward = Vector3.Transform(-Vector3.UnitZ, rotation);
+        Vector3 up = Vector3.Transform(Vector3.UnitY, rotation);
+        return Matrix4x4.CreateLookAt(position, position + forward, up);
     }
     internal static Matrix4x4 View(Vector3 position)
     {
-        return View(position, Vector3.Zero);   
+        return View(position, Quaternion.Identity);   
     }
 
     internal static Matrix4x4 Orthographic(float left, float right, float bottom, float top, float near, float far)

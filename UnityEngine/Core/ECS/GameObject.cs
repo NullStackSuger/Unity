@@ -1,6 +1,6 @@
 namespace UnityEngine;
 
-public class GameObject
+public class GameObject : IDisposable
 {
     public GameObject() : this("Game Object")
     {
@@ -8,21 +8,53 @@ public class GameObject
 
     public GameObject(string name)
     {
-        this.Parent = Scene.ActiveScene; // 如果Scene还没创建(GameObject就是Scene), 那 Parent==null
         this.name = name;
+        this.Parent = Scene.ActiveScene; // 如果Scene还没创建(GameObject就是Scene), 那 Parent==null
         
         transform = AddComponent<TransformComponent>();
     }
-    
+
+    ~GameObject()
+    {
+        Dispose();
+    }
+    public void Dispose()
+    {
+        foreach (MonoBehaviour component in components.Values)
+        {
+            component.OnDestroy();
+        }
+        components.Clear();
+
+        foreach (GameObject child in children)
+        {
+            GameObject.RemoveChild(this, child);
+        }
+
+        IsDispose = true;
+    }
+    public bool IsDispose { get; private set; }
+
     public override string ToString()
     {
         return name;
     }
     public string name;
 
+    public void Tick()
+    {
+        foreach (MonoBehaviour component in components.Values)
+        {
+            component.OnUpdate();
+        }
+
+        foreach (GameObject child in children)
+        {
+            child.Tick();
+        }
+    }
+
     #region Component
-    // TODO 调用Awake, Destroy
-    
     public T AddComponent<T>() where T : MonoBehaviour, new()
     {
         T component = new T
@@ -30,11 +62,13 @@ public class GameObject
             gameObject = this
         };
         components.Add(typeof(T), component);
+        component.OnAwake();
         return component;
     }
 
     public void RemoveComponent<T>() where T : MonoBehaviour, new()
     {
+        components[typeof(T)].OnDestroy();
         components.Remove(typeof(T));
     }
 
@@ -96,6 +130,7 @@ public class GameObject
     
     
     private readonly HashSet<GameObject> children = new();
+    public IReadOnlySet<GameObject> Children => children;
     private GameObject parent;
     public GameObject Parent
     {
@@ -106,7 +141,7 @@ public class GameObject
             if (value == null) return;
             if(value == this) return;
             if (this.IsParentOf(value)) return;
-
+            
             if (parent != null)
             {
                 GameObject.RemoveChild(parent, this);

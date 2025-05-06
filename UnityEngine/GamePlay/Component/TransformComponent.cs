@@ -12,10 +12,10 @@ public class TransformComponent : MonoBehaviour
         rotation = Quaternion.Identity;
         scale = Vector3.One;
     }
-    
-    public Vector3 position { get; private set; }
-    public Quaternion rotation { get; private set; }
-    public Vector3 scale { get; private set; }
+
+    public Vector3 position;
+    public Quaternion rotation;
+    public Vector3 scale;
 
     public Vector3 worldPosition
     {
@@ -89,6 +89,6 @@ public class TransformComponent : MonoBehaviour
 
     public override string ToString()
     {
-        return nameof(TransformComponent);
+        return "Transform";
     }
 }
