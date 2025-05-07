@@ -19,9 +19,10 @@ public static class RenderSystem
         );
         commandList = device.ResourceFactory.CreateCommandList();
 
-        var objectsRenderPass = new ObjectsRenderPass(device, 800, 600);
+        var prepareRenderPass = new PrepareRenderPass();
+        var objectsRenderPass = new ObjectsRenderPass(device, 800, 600, prepareRenderPass.Objects);
         var uiRenderPass = new UiRenderPass(device, objectsRenderPass.result);
-        renderPasses = [objectsRenderPass, uiRenderPass];
+        renderPasses = [prepareRenderPass, objectsRenderPass, uiRenderPass];
         
         EventSystem.Add(new WindowResizeEventHandler());
     }

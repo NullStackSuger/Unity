@@ -2,9 +2,9 @@ using System.Numerics;
 
 namespace UnityEngine;
 
-public struct Color
+public readonly struct Color
 {
-    public float r, g, b, a;
+    public readonly float r, g, b, a;
 
     public Color()
     {

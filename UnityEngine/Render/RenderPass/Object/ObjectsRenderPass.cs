@@ -6,19 +6,19 @@ using Veldrid.SPIRV;
 
 namespace UnityEngine;
 
-public class ObjectsRenderPass : RenderPass
+public sealed class ObjectsRenderPass : RenderPass
 {
-    public ObjectsRenderPass(GraphicsDevice device, uint width, uint height)
+    public ObjectsRenderPass(GraphicsDevice device, uint width, uint height, IReadOnlyList<(GameObject, MeshComponent)> objs)
     {
         // 更新输入信息
-        cube = Scene.ActiveScene.Find("Cube"); // TODO Test
+        cube = objs.First().Item1; // TODO Test
         mvpUniform = new MVPUniform()
         {
             model = cube.transform.Model,
             view = Camera.Main.View,
             projection = Camera.Main.Projection
         };
-        MeshComponent meshComponent = cube.GetComponent<MeshComponent>();
+        MeshComponent meshComponent = objs.First().Item2;
         indices = meshComponent.indices;
         vertices = new Vertex[meshComponent.positions.Length];
         for (int i = 0; i < vertices.Length; i++)
@@ -73,8 +73,8 @@ public class ObjectsRenderPass : RenderPass
                 new VertexLayoutDescription[] { Vertex.GetLayout() },
                 device.ResourceFactory.CreateFromSpirv
                 (
-                    new ShaderDescription(ShaderStages.Vertex, File.ReadAllBytes($"{Define.AssetPath}\\Shaders\\Object\\object.vert.spv"), "main"),
-                    new ShaderDescription(ShaderStages.Fragment, File.ReadAllBytes($"{Define.AssetPath}\\Shaders\\Object\\object.frag.spv"), "main")
+                    new ShaderDescription(ShaderStages.Vertex, File.ReadAllBytes(meshComponent.VertPath), "main"),
+                    new ShaderDescription(ShaderStages.Fragment, File.ReadAllBytes(meshComponent.FragPath), "main")
                 )
             ),
             Outputs = frameBuffer.OutputDescription,

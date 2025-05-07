@@ -8,19 +8,14 @@ public class MeshComponent : MonoBehaviour
     public string ObjPath
     {
         get => objPath;
-        set
-        {
-            if (value == null) return;
-            if (value == string.Empty) return;
-            if (value.Equals(objPath)) return;
-            objPath = value;
-            Helper.LoadObj(objPath, out indices, out positions, out uvs, out normals);
-        }
+        set => LoadObj(value);
     }
     private string objPath = "";
-
     public string VertPath { get; private set; }
     public string FragPath { get; private set; }
+
+    public AABB AABB { get; private set; }
+
     public ushort[] indices;
     public Vector3[] positions;
     public Vector2[] uvs;
@@ -32,10 +27,37 @@ public class MeshComponent : MonoBehaviour
 
     public MeshComponent()
     {
-        //ToDo 配合ObjectsRenderPass 一开始渲染
+        //TODO Test
         ObjPath = FileSystem.GetLikeFiles(".obj")?.First();
         VertPath = $"{Define.AssetPath}\\Shaders\\Object\\object.vert.spv";
         FragPath = $"{Define.AssetPath}\\Shaders\\Object\\object.frag.spv";
+    }
+
+    public void LoadObj(string objPath)
+    {
+        if (objPath == null) return;
+        if (objPath == string.Empty) return;
+        if (objPath.Equals(this.objPath)) return;
+        
+        this.objPath = objPath;
+        Helper.LoadObj(objPath, out indices, out positions, out uvs, out normals);
+        
+        if (indices == null || indices.Length == 0 || positions == null || positions.Length == 0)
+        {
+            AABB = AABB.None;
+        }
+        else
+        {
+            AABB aabb = AABB.None;
+
+            foreach (ushort i in indices)
+            {
+                Vector3 p = positions[i];
+                aabb.Encapsulate(p);
+            }
+            
+            AABB = aabb;
+        }
     }
 
     public override void DrawSetting()

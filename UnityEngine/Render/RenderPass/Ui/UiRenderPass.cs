@@ -7,7 +7,7 @@ using Veldrid;
 
 namespace UnityEngine;
 
-public class UiRenderPass : RenderPass
+public sealed class UiRenderPass : RenderPass
 {
     public UiRenderPass(GraphicsDevice device, Texture objectsRender)
     {

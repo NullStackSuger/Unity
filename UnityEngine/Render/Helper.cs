@@ -17,8 +17,7 @@ public static partial class Helper
         Quaternion rotZ = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rad.Z);
         return Quaternion.Normalize(rotY * rotX * rotZ);
     }
-
-    // TODO 这里四元数转V3不够精确, 可能要用SDL
+    
     public static Vector3 ToVector3(this Quaternion q)
     {
         q = Quaternion.Normalize(q);

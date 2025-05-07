@@ -16,7 +16,7 @@ public class Scene
         GameObject cube = new GameObject("Cube");
         cube.AddComponent<MeshComponent>();
         cube.transform.position = new Vector3(0, 0, 5);
-        cube.transform.rotation = new Vector3(60f, 0f, 60f).ToQuaternion();
+        cube.transform.rotation = new Vector3(45, 0, 45).ToQuaternion();
 
         Build();
     }
@@ -46,6 +46,11 @@ public class Scene
     public GameObject Find(string name)
     {
         return Find(obj => obj.name == name);
+    }
+    public IEnumerable<GameObject> Find()
+    {
+        GameObject obj = this;
+        return obj.Find();
     }
     
     public void Tick()

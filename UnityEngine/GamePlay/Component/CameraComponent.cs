@@ -31,12 +31,12 @@ public class OrthographicCameraComponent : CameraComponent
         return mat;
     }
 
-    public float left = 0;
-    public float right = 1;
-    public float down = 0;
-    public float top = 1;
+    public float left = -5;
+    public float right = 5;
+    public float down = -5;
+    public float top = 5;
     public float near = 0;
-    public float far = 1;
+    public float far = 100;
 
     public override void DrawSetting()
     {

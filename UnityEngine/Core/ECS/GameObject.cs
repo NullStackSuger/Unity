@@ -127,6 +127,18 @@ public class GameObject : IDisposable
         }
         return null;
     }
+    public IEnumerable<GameObject> Find()
+    {
+        yield return this;
+
+        foreach (var child in Children)
+        {
+            foreach (var descendant in child.Find())
+            {
+                yield return descendant;
+            }
+        }
+    }
     
     
     private readonly HashSet<GameObject> children = new();
