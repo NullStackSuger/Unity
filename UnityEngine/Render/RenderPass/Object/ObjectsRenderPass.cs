@@ -11,7 +11,7 @@ public class ObjectsRenderPass : RenderPass
     public ObjectsRenderPass(GraphicsDevice device, uint width, uint height)
     {
         // 更新输入信息
-        GameObject cube = Scene.ActiveScene.Find("Cube"); // TODO Test
+        cube = Scene.ActiveScene.Find("Cube"); // TODO Test
         mvpUniform = new MVPUniform()
         {
             model = cube.transform.Model,
@@ -30,6 +30,8 @@ public class ObjectsRenderPass : RenderPass
         result = device.ResourceFactory.CreateTexture(TextureDescription.Texture2D(width, height, 1, 1, PixelFormat.B8_G8_R8_A8_UNorm, TextureUsage.RenderTarget | TextureUsage.Sampled));
         Texture depthResult = device.ResourceFactory.CreateTexture(TextureDescription.Texture2D(width, height, 1, 1, PixelFormat.D24_UNorm_S8_UInt, TextureUsage.DepthStencil));
         frameBuffer = device.ResourceFactory.CreateFramebuffer(new FramebufferDescription(depthResult, result));
+
+        this.device = device;
         
         // 顶点Buffer
         vertexBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)(vertices.Length * Marshal.SizeOf<Vertex>()), BufferUsage.VertexBuffer));
@@ -85,6 +87,10 @@ public class ObjectsRenderPass : RenderPass
         commandList.ClearColorTarget(0, new RgbaFloat(0.1f, 0.1f, 0.1f, 1.0f));
         commandList.ClearDepthStencil(1, 0);
         
+        // Update Uniform
+        mvpUniform.model = cube.transform.Model;
+        device.UpdateBuffer(mvpBuffer, 0, ref mvpUniform);
+        
         commandList.SetVertexBuffer(0, vertexBuffer);
         commandList.SetIndexBuffer(indexBuffer, IndexFormat.UInt16);
         commandList.SetPipeline(pipeline);
@@ -93,6 +99,7 @@ public class ObjectsRenderPass : RenderPass
     }
     
     public readonly Texture result;
+    private readonly GraphicsDevice device;
     private readonly Framebuffer frameBuffer;
     private readonly DeviceBuffer vertexBuffer;
     private readonly DeviceBuffer indexBuffer;
@@ -102,5 +109,7 @@ public class ObjectsRenderPass : RenderPass
     
     private readonly Vertex[] vertices;
     private readonly ushort[] indices;
-    private readonly MVPUniform mvpUniform;
+    private MVPUniform mvpUniform;
+
+    private GameObject cube;
 }

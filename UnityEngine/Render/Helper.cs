@@ -18,30 +18,33 @@ public static partial class Helper
         return Quaternion.Normalize(rotY * rotX * rotZ);
     }
 
+    // TODO 这里四元数转V3不够精确, 可能要用SDL
     public static Vector3 ToVector3(this Quaternion q)
     {
         q = Quaternion.Normalize(q);
+        Matrix4x4 m = Matrix4x4.CreateFromQuaternion(q);
+        
+        Vector3 angles;
 
-        float x, y, z;
-
-        // sin(pitch)
-        float sinp = 2f * (q.W * q.X - q.Z * q.Y);
-        if (MathF.Abs(sinp) >= 1f)
-            x = MathF.CopySign(MathF.PI / 2f, sinp); // 极值时为 ±90°
+        // Pitch (X)
+        angles.X = MathF.Asin(-m.M32);
+    
+        // Handle Gimbal Lock
+        if (MathF.Abs(m.M32) < 0.9999f)
+        {
+            // Yaw (Y)
+            angles.Y = MathF.Atan2(m.M31, m.M33);
+            // Roll (Z)
+            angles.Z = MathF.Atan2(m.M12, m.M22);
+        }
         else
-            x = MathF.Asin(sinp); // pitch（X轴）
+        {
+            // Gimbal lock: Yaw and Roll combined
+            angles.Y = MathF.Atan2(-m.M13, m.M11);
+            angles.Z = 0;
+        }
 
-        // yaw (Y轴)
-        float siny_cosp = 2f * (q.W * q.Y + q.Z * q.X);
-        float cosy_cosp = 1f - 2f * (q.X * q.X + q.Y * q.Y);
-        y = MathF.Atan2(siny_cosp, cosy_cosp);
-
-        // roll (Z轴)
-        float sinr_cosp = 2f * (q.W * q.Z + q.X * q.Y);
-        float cosr_cosp = 1f - 2f * (q.Y * q.Y + q.Z * q.Z);
-        z = MathF.Atan2(sinr_cosp, cosr_cosp);
-
-        return new Vector3(x, y, z) * rad2Deg;
+        return angles * rad2Deg;
     }
 
     public static LoadResult LoadObj(string path)
