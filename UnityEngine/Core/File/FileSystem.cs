@@ -2,43 +2,64 @@ using UnityEngine.Events;
 
 namespace UnityEngine;
 
-public class FileSystem
+public static class FileSystem
 {
-    public FileSystem(string path)
+    static FileSystem()
     {
-        EventSystem.Add(new FileRebuildEventHandler());
-        
-        root = TreeNode<FileInfo>.Root(new FileInfo(path));
-        EventSystem.PublishAsync(new FileRebuildEvent(){ node = root });
+        root = TreeNode<FileInfo>.Root(new FileInfo(Define.AssetPath));
+
+        Build();
     }
-    
-    private static void BuildNode(TreeNode<FileInfo> node)
+
+    public static void Build()
+    {
+        root.Clear();
+        foreach (string expand in Define.LikeFileTypes)
+        {
+            likeFileTypes[expand] = new HashSet<string>();
+        }
+        BuildNode(root, ref likeFileTypes);
+    }
+    private static void BuildNode(TreeNode<FileInfo> node, ref Dictionary<string, HashSet<string>> likeFileTypes)
     {
         FileInfo info = node;
-        bool isDirectory = info.IsDirectory;
-        if (!isDirectory) return;
 
         foreach (var entry in Directory.GetFileSystemEntries(info.Path))
         {
-            var child = node.AddChild(new FileInfo($"{Path.GetFullPath(entry)}"));
-            BuildNode(child);
+            if (Directory.Exists(entry))
+            {
+                var child = node.AddChild(new FileInfo($"{Path.GetFullPath(entry)}"));
+                BuildNode(child, ref likeFileTypes);  
+            }
+            else
+            {
+                string extension = Path.GetExtension(entry);
+                
+                if (Define.UnlikeFileTypes.Contains(extension))
+                {
+                    continue;
+                }
+                
+                if (Define.LikeFileTypes.Contains(extension))
+                {
+                    likeFileTypes[extension].Add(entry);
+                }
+                
+                node.AddChild(new FileInfo($"{Path.GetFullPath(entry)}"));
+            }
         }
     }
-    
-    private readonly TreeNode<FileInfo> root;
 
-    public static implicit operator TreeNode<FileInfo>(FileSystem fileSystem)
+    public static IReadOnlySet<string> GetLikeFiles(string extension)
     {
-        return fileSystem?.root;
+        return likeFileTypes[extension];
     }
-    public static implicit operator FileInfo(FileSystem fileSystem)
-    {
-        return fileSystem?.root?.Value;
-    }
-    public static implicit operator string(FileSystem fileSystem)
-    {
-        return fileSystem?.root?.Value?.Path;
-    }
+    
+    public static readonly TreeNode<FileInfo> root;
+    /// <summary>
+    /// 扩展名, 路径
+    /// </summary>
+    private static Dictionary<string, HashSet<string>> likeFileTypes = new();
         
     public class FileInfo
     {
@@ -55,16 +76,6 @@ public class FileSystem
         public static implicit operator string(FileInfo info)
         {
             return info.Path;
-        }
-    }
-    
-    private class FileRebuildEventHandler : AEvent<FileRebuildEvent>
-    {
-        protected override async Task Run(FileRebuildEvent a)
-        {
-            a.node.Clear();
-            BuildNode(a.node);
-            await Task.CompletedTask;
         }
     }
 }

@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Reflection;
-using System.IO;
 using Veldrid;
 using System.Runtime.CompilerServices;
+using ImGuiNET;
 
-namespace ImGuiNET
+namespace UnityEngine
 {
     /// <summary>
     /// A modified version of Veldrid.ImGui's ImGuiRenderer.
@@ -97,8 +95,8 @@ namespace ImGuiNET
             _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
 
-            byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "Shaders/Ui/imgui.vert", ShaderStages.Vertex);
-            byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "Shaders/Ui/imgui.frag", ShaderStages.Fragment);
+            byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, $"{Define.AssetPath}\\Shaders\\Ui\\imgui.vert", ShaderStages.Vertex);
+            byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, $"{Define.AssetPath}\\Shaders\\Ui\\imgui.frag", ShaderStages.Fragment);
             _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, gd.BackendType == GraphicsBackend.Metal ? "VS" : "main"));
             _fragmentShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, fragmentShaderBytes, gd.BackendType == GraphicsBackend.Metal ? "FS" : "main"));
 

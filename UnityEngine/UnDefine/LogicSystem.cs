@@ -8,7 +8,6 @@ public static class LogicSystem
     static LogicSystem()
     {
         window = Window.window;
-        fileSystem = new FileSystem($"{Define.BasePath}\\Sandbox\\Asset");
         scene = new Scene("Default Scene");
     }
 
@@ -20,6 +19,5 @@ public static class LogicSystem
     }
     
     private static readonly Sdl2Window window;
-    public static readonly FileSystem fileSystem;
     private static readonly Scene scene;
 }

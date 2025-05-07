@@ -11,17 +11,19 @@ public class ObjectsRenderPass : RenderPass
     public ObjectsRenderPass(GraphicsDevice device, uint width, uint height)
     {
         // 更新输入信息
+        GameObject cube = Scene.ActiveScene.Find("Cube"); // TODO Test
         mvpUniform = new MVPUniform()
         {
-            model = Helper.Model(new Vector3(0f, 0f, 5f), new Vector3(45f, 0f, 45f).ToQuaternion(), Vector3.One),
-            view = Helper.View(new Vector3(0f, 0f, -2.5f)),
-            projection = Helper.Perspective(50 * Helper.degToRad, (float)width / (float)height, 0.1f, 100.0f)
+            model = cube.transform.Model,
+            view = Camera.Main.View,
+            projection = Camera.Main.Projection
         };
-        Helper.LoadObj("Objs/cube", out indices, out var positions, out var uvs, out var normals);
-        vertices = new Vertex[positions.Length];
-        for (int i = 0; i < positions.Length; i++)
+        MeshComponent meshComponent = cube.GetComponent<MeshComponent>();
+        indices = meshComponent.indices;
+        vertices = new Vertex[meshComponent.positions.Length];
+        for (int i = 0; i < vertices.Length; i++)
         {
-            vertices[i] = new Vertex() { position = positions[i], uv = uvs[i] };
+            vertices[i] = new Vertex() { position = meshComponent.positions[i], uv = meshComponent.uvs[i] };
         }
         
         // 创建Texture接收结果
@@ -69,8 +71,8 @@ public class ObjectsRenderPass : RenderPass
                 new VertexLayoutDescription[] { Vertex.GetLayout() },
                 device.ResourceFactory.CreateFromSpirv
                 (
-                    new ShaderDescription(ShaderStages.Vertex, File.ReadAllBytes("Shaders/Object/object.vert.spv"), "main"),
-                    new ShaderDescription(ShaderStages.Fragment, File.ReadAllBytes("Shaders/Object/object.frag.spv"), "main")
+                    new ShaderDescription(ShaderStages.Vertex, File.ReadAllBytes($"{Define.AssetPath}\\Shaders\\Object\\object.vert.spv"), "main"),
+                    new ShaderDescription(ShaderStages.Fragment, File.ReadAllBytes($"{Define.AssetPath}\\Shaders\\Object\\object.frag.spv"), "main")
                 )
             ),
             Outputs = frameBuffer.OutputDescription,

@@ -43,64 +43,14 @@ public static partial class Helper
 
         return new Vector3(x, y, z) * rad2Deg;
     }
-    
-    // TODO MVP应由GameObject,Camera,Window计算
-    internal static Matrix4x4 Model(Vector3 position, Quaternion rotation, Vector3 scale)
-    {
-        return Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(position);
-    }
-    internal static Matrix4x4 Model(Vector3 position)
-    {
-        return Model(position, Quaternion.Identity, Vector3.One);
-    }
 
-    internal static Matrix4x4 View(Vector3 position, Quaternion rotation)
-    {
-        // 相机的 forward 是 -Z 轴方向
-        Vector3 forward = Vector3.Transform(-Vector3.UnitZ, rotation);
-        Vector3 up = Vector3.Transform(Vector3.UnitY, rotation);
-        return Matrix4x4.CreateLookAt(position, position + forward, up);
-    }
-    internal static Matrix4x4 View(Vector3 position)
-    {
-        return View(position, Quaternion.Identity);   
-    }
-
-    internal static Matrix4x4 Orthographic(float left, float right, float bottom, float top, float near, float far)
-    {
-        Matrix4x4 mat = Matrix4x4.Identity;
-        mat[0, 0] = 2.0f / (right - left);
-        mat[1, 1] = 2.0f / (bottom - top);
-        mat[2, 2] = 1.0f / (far - near);
-        mat[3, 0] = -(right + left) / (right - left);
-        mat[3, 1] = -(bottom + top) / (bottom - top);
-        mat[3, 2] = -near / (far - near);
-        return mat;
-    }
-    internal static Matrix4x4 Perspective(float fovY, float aspect, float near, float far)
-    {
-        Debug.Assert(aspect - float.Epsilon <= 0.0f, $"({aspect}), ({float.Epsilon})");
-
-        float tanHalfFovY = MathF.Tan(fovY / 2.0f);
-        
-        Matrix4x4 mat = new Matrix4x4
-        {
-            [0, 0] = 1.0f / (aspect * tanHalfFovY),
-            [1, 1] = 1.0f / tanHalfFovY,
-            [2, 2] = far / (far - near),
-            [2, 3] = 1.0f,
-            [3, 2] = -(far * near) / (far - near)
-        };
-        return mat;
-    }
-
-    internal static LoadResult LoadObj(string path)
+    public static LoadResult LoadObj(string path)
     {
         var loader = objLoaderFactory.Create();
-        var fs = new FileStream($"{path}.obj", FileMode.Open);
+        var fs = new FileStream(path, FileMode.Open);
         return loader.Load(fs);
     }
-    internal static void LoadObj(string path, out ushort[] indices, out Vector3[] positions, out Vector2[] uvs, out Vector3[] normals)
+    public static bool LoadObj(string path, out ushort[] indices, out Vector3[] positions, out Vector2[] uvs, out Vector3[] normals)
     {
         var vertexDict = new Dictionary<FaceVertex, ushort>(); // 去重
         var positionList = new List<Vector3>();
@@ -155,6 +105,8 @@ public static partial class Helper
         uvs = uvList.ToArray();
         normals = normalList.ToArray();
         indices = indexList.ToArray();
+
+        return true;
     }
 
     private static readonly ObjLoaderFactory objLoaderFactory = new();

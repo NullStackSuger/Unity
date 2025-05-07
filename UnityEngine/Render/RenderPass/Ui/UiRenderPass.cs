@@ -159,12 +159,12 @@ public class UiRenderPass : RenderPass
         {
             if (ImGui.Button("Rebuild"))
             {
-                EventSystem.PublishAsync(new FileRebuildEvent(){ node = fileSystem });
+                FileSystem.Build();
             }
             
             ImGui.EndMenuBar();
         }
-        DrawAsset(fileSystem, ref selectedFile);
+        DrawAsset(FileSystem.root, ref selectedFile);
         ImGui.End();
 
         static void DrawAsset(TreeNode<FileSystem.FileInfo> node, ref FileSystem.FileInfo selectedFile)
@@ -265,7 +265,7 @@ public class UiRenderPass : RenderPass
         {
             if (ImGui.Button("Rebuild"))
             {
-                EventSystem.PublishAsync(new SceneRebuildEvent(){ node = scene });
+                scene.Build();
             }
             
             ImGui.EndMenuBar();
@@ -424,7 +424,6 @@ public class UiRenderPass : RenderPass
     #endregion
     #region Asset
     private FileSystem.FileInfo selectedFile;
-    private readonly FileSystem fileSystem = LogicSystem.fileSystem;
     #endregion
     #region Scene
     private Scene.SceneObjectInfo selectedObject;
@@ -442,11 +441,11 @@ public class UiRenderPass : RenderPass
     
     private class WindowResizeEventHandler : AEvent<WindowResizeEvent>
     {
-        private readonly ImGuiController uiRenderer; // TODO 不应该有状态
+        private static ImGuiController uiRenderer; // TODO 不应该有状态, 目前用static保证合理
 
         public WindowResizeEventHandler(ImGuiController uiRenderer)
         {
-            this.uiRenderer = uiRenderer;
+            WindowResizeEventHandler.uiRenderer = uiRenderer;
         }
         
         protected override async Task Run(WindowResizeEvent a)
@@ -458,11 +457,11 @@ public class UiRenderPass : RenderPass
     
     private class DebugEventHandler : AEvent<DebugEvent>
     {
-        private readonly List<DebugEvent> debugInfos; // TODO 不应该有状态
+        private static List<DebugEvent> debugInfos; // TODO 不应该有状态, 目前用static保证合理
 
         public DebugEventHandler(List<DebugEvent> debugInfos)
         {
-            this.debugInfos = debugInfos;
+            DebugEventHandler.debugInfos = debugInfos;
         }
         
         protected override async Task Run(DebugEvent a)

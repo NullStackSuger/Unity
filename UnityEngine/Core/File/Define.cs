@@ -1,6 +1,7 @@
-namespace UnityEngine.Core.File;
+namespace UnityEngine;
 
-public class Define
+public static partial class Define
 {
-    
+    public static string[] LikeFileTypes = [".obj", ".spv", ".cs"];
+    public static string[] UnlikeFileTypes = [".dva"];
 }

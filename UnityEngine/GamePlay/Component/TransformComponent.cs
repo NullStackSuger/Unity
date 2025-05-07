@@ -48,7 +48,7 @@ public class TransformComponent : MonoBehaviour
 
     public Matrix4x4 localMatrix => Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(position);
 
-    public Matrix4x4 worldMatrix
+    public Matrix4x4 Model
     {
         get
         {

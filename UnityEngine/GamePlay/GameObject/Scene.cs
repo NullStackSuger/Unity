@@ -1,3 +1,4 @@
+using System.Numerics;
 using UnityEngine.Events;
 
 namespace UnityEngine;
@@ -6,16 +7,25 @@ public class Scene
 {
     public Scene(string name, bool isActive = true)
     {
-        EventSystem.Add(new SceneRebuildEventHandler());
-        
         root = TreeNode<SceneObjectInfo>.Root(new SceneObjectInfo(new GameObject(name)));
         if (isActive) ActiveScene = this;
         
         GameObject camera = new Camera(true, "Main Camera", true);
+        camera.transform.position = new Vector3(0, 0, -2.5f);
+        
+        GameObject cube = new GameObject("Cube");
+        cube.AddComponent<MeshComponent>();
+        cube.transform.position = new Vector3(0, 0, 5);
+        cube.transform.rotation = new Vector3(60f, 0f, 60f).ToQuaternion();
 
-        EventSystem.PublishAsync(new SceneRebuildEvent(){ node = root });
+        Build();
     }
-    
+
+    public void Build()
+    {
+        root.Clear();
+        BuildNode(root);
+    }
     private static void BuildNode(TreeNode<SceneObjectInfo> node)
     {
         SceneObjectInfo info = node;
@@ -28,6 +38,16 @@ public class Scene
         }
     }
 
+    public GameObject Find(Func<GameObject, bool> func)
+    {
+        GameObject obj = this;
+        return obj.Find(func);
+    }
+    public GameObject Find(string name)
+    {
+        return Find(obj => obj.name == name);
+    }
+    
     public void Tick()
     {
         GameObject gameObject = this;
@@ -63,16 +83,6 @@ public class Scene
         public static implicit operator GameObject(SceneObjectInfo info)
         {
             return info.gameObject;
-        }
-    }
-    
-    private class SceneRebuildEventHandler : AEvent<SceneRebuildEvent>
-    {
-        protected override async Task Run(SceneRebuildEvent a)
-        {
-            a.node.Clear();
-            BuildNode(a.node);
-            await Task.CompletedTask;
         }
     }
 }
