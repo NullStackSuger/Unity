@@ -12,4 +12,8 @@
       <ProjectReference Include="..\UnityEngine\UnityEngine.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Asset\Shaders\Shadow\" />
+    </ItemGroup>
+
 </Project>

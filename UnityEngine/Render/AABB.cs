@@ -36,8 +36,8 @@ public struct AABB
         foreach (Vector3 corner in GetCorners())
         {
             Vector3 transformed = Vector3.Transform(corner, model);
-            aabb.Min = Vector3.Min(Min, transformed);
-            aabb.Max = Vector3.Max(Max, transformed);
+            aabb.Min = Vector3.Min(aabb.Min, transformed);
+            aabb.Max = Vector3.Max(aabb.Max, transformed);
         }
         return aabb;
     }

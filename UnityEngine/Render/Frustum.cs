@@ -1,4 +1,4 @@
-/*using System.Numerics;
+using System.Numerics;
 
 namespace UnityEngine;
 
@@ -16,11 +16,11 @@ public readonly struct Frustum
     public Frustum(Matrix4x4 vp)
     {
         // 提取六个平面， plane: Ax + By + Cz + D = 0
-        this.Left   = new Plane(vp.M14 - vp.M11, vp.M24 - vp.M21, vp.M34 - vp.M31, vp.M44 - vp.M41);
-        this.Right  = new Plane(vp.M14 + vp.M11, vp.M24 + vp.M21, vp.M34 + vp.M31, vp.M44 + vp.M41);
-        this.Bottom = new Plane(vp.M14 - vp.M12, vp.M24 - vp.M22, vp.M34 - vp.M32, vp.M44 - vp.M42);
-        this.Top    = new Plane(vp.M14 + vp.M12, vp.M24 + vp.M22, vp.M34 + vp.M32, vp.M44 + vp.M42);
-        this.Near   = new Plane(vp.M14 + vp.M13, vp.M24 + vp.M23, vp.M34 + vp.M33, vp.M44 + vp.M43);
+        this.Left   = new Plane(vp.M14 + vp.M11, vp.M24 + vp.M21, vp.M34 + vp.M31, vp.M44 + vp.M41);
+        this.Right  = new Plane(vp.M14 - vp.M11, vp.M24 - vp.M21, vp.M34 - vp.M31, vp.M44 - vp.M41);
+        this.Top    = new Plane(vp.M14 - vp.M12, vp.M24 - vp.M22, vp.M34 - vp.M32, vp.M44 - vp.M42);
+        this.Bottom = new Plane(vp.M14 + vp.M12, vp.M24 + vp.M22, vp.M34 + vp.M32, vp.M44 + vp.M42);
+        this.Near   = new Plane(vp.M13, vp.M23, vp.M33, vp.M43);
         this.Far    = new Plane(vp.M14 - vp.M13, vp.M24 - vp.M23, vp.M34 - vp.M33, vp.M44 - vp.M43);
         
         // 归一化每个平面（单位法线）
@@ -38,7 +38,9 @@ public readonly struct Frustum
         foreach (var plane in Planes)
         {
             if (!bounds.Intersects(plane))
+            {
                 return false;
+            }
         }
         return true;
     }
@@ -60,4 +62,4 @@ public readonly struct Frustum
     {
         return $"{Left}, {Right}, {Top}, {Bottom}, {Near}, {Far}";
     }
-}*/
+}

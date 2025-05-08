@@ -43,4 +43,14 @@ public readonly struct Color
     {
         return new Vector3(color.r, color.g, color.b);
     }
+
+    public static implicit operator Color(Vector4 color)
+    {
+        return new Color(color.X, color.Y, color.Z, color.W);
+    }
+
+    public static implicit operator Color(Vector3 color)
+    {
+        return new Color(color.X, color.Y, color.Z);
+    }
 }

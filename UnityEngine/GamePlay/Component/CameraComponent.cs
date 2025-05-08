@@ -23,19 +23,19 @@ public class OrthographicCameraComponent : CameraComponent
     {
         Matrix4x4 mat = Matrix4x4.Identity;
         mat[0, 0] = 2.0f / (right - left);
-        mat[1, 1] = 2.0f / (down - top);
+        mat[1, 1] = 2.0f / (top - bottom);
         mat[2, 2] = 1.0f / (far - near);
         mat[3, 0] = -(right + left) / (right - left);
-        mat[3, 1] = -(down + top) / (down - top);
+        mat[3, 1] = -(top + bottom) / (top - bottom);
         mat[3, 2] = -near / (far - near);
         return mat;
     }
 
     public float left = -5;
     public float right = 5;
-    public float down = -5;
+    public float bottom = -5;
     public float top = 5;
-    public float near = 0;
+    public float near = 1;
     public float far = 100;
 
     public override void DrawSetting()
@@ -46,7 +46,7 @@ public class OrthographicCameraComponent : CameraComponent
         ImGui.SameLine();
         ImGui.DragFloat("Right", ref right);
         
-        ImGui.DragFloat("Down", ref down);
+        ImGui.DragFloat("Bottom", ref bottom);
         ImGui.SameLine();
         ImGui.DragFloat("Top", ref top);
         
@@ -82,7 +82,7 @@ public class PerspectiveCameraComponent : CameraComponent
         return mat;
     }
     
-    public float fovY = 50;
+    public float fovY = 60;
     public float aspect = 4f / 3f;
     public float near = 0.1f;
     public float far = 100;

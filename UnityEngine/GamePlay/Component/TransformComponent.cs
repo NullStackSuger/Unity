@@ -65,12 +65,8 @@ public class TransformComponent : MonoBehaviour
     
     public override void DrawSetting()
     {
-        Vector3 position = this.position;
         ImGui.Text("Position");
-        if (ImGui.DragFloat3("##Position", ref position))
-        {
-            this.position = position;
-        }
+        ImGui.DragFloat3("##Position", ref position);
         
         Vector3 rotation = this.rotation.ToVector3();
         ImGui.Text("Rotation");
@@ -79,12 +75,8 @@ public class TransformComponent : MonoBehaviour
             this.rotation = rotation.ToQuaternion();
         }
         
-        Vector3 scale = this.scale;
         ImGui.Text("Scale");
-        if (ImGui.DragFloat3("##Scale", ref scale))
-        {
-            this.scale = scale;
-        }
+        ImGui.DragFloat3("##Scale", ref scale);
     }
 
     public override string ToString()

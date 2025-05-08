@@ -15,11 +15,10 @@ public sealed class UiRenderPass : RenderPass
         this.debugInfos = new List<DebugEvent>(10);
         this.device = device;
         uiRenderer = new ImGuiController(device, device.MainSwapchain.Framebuffer.OutputDescription, window.Width, window.Height);
-
+        
         // 场景渲染结果
         this.objectsRender = objectsRender;
-        var resultView = device.ResourceFactory.CreateTextureView(this.objectsRender);
-        objectsRenderView = uiRenderer.GetOrCreateImGuiBinding(device.ResourceFactory, resultView);
+        objectsRenderView = uiRenderer.GetOrCreateImGuiBinding(device.ResourceFactory, device.ResourceFactory.CreateTextureView(this.objectsRender));
 
         // 事件
         EventSystem.Add(new WindowResizeEventHandler(uiRenderer));
@@ -366,7 +365,6 @@ public sealed class UiRenderPass : RenderPass
         #endregion
         #region Run
         ImGui.Begin("Run");
-        ImGui.Image(objectsRenderView, new Vector2(objectsRender.Width, objectsRender.Height));
         ImGui.End();
         #endregion
         #region Setting

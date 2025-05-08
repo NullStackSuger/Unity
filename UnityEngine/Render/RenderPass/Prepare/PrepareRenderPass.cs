@@ -20,17 +20,19 @@ public sealed class PrepareRenderPass : RenderPass
         // 剔除相机之外的Obj, 并按里相机远近排序
         GameObject sceneObj = scene;
         GameObject cameraObj = camera;
+        Frustum frustum = camera.Frustum;
         
-        // 视锥体剔除
-        // TODO 这里暂时不剔除
         foreach (GameObject obj in sceneObj.Find())
         {
             if (!obj.TryGetComponent(out MeshComponent meshComponent)) continue;
-            
-            objects.Add((obj, meshComponent));
-            
+        
+            // 视锥体剔除
             // 世界坐标系的包围盒
             AABB aabb = meshComponent.AABB.Transform(obj.transform.Model);
+            if (frustum.Intersects(aabb))
+            {
+                objects.Add((obj, meshComponent));
+            }
         }
         
         // 按距离摄像机的远近排序
