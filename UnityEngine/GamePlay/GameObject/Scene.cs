@@ -17,7 +17,7 @@ public class Scene
         
         GameObject cube = new GameObject("Cube");
         cube.AddComponent<MeshComponent>();
-        cube.transform.position = new Vector3(0, 0, 5);
+        cube.transform.position = new Vector3(0, 0, 10);
         cube.transform.rotation = new Vector3(45, 0, 45).ToQuaternion();
 
         Build();

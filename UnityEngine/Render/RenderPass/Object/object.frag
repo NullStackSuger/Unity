@@ -24,13 +24,15 @@ void main()
 {
     vec4 shadowCoord = light.projection * light.view * vec4(fragWorldPos, 1.0);
     shadowCoord /= shadowCoord.w;
-    // 不需要这一句, 我们本来就是[0, 1]了
-    //shadowCoord = shadowCoord * 0.5 + 0.5;
+    // 这里要注意, xy的范围是[-1, 1], z是[0, 1]
+    shadowCoord.xy = shadowCoord.xy * 0.5 + 0.5;
     
     float shadowDepth = texture(sampler2D(shadowMap, shadowMapSampler), shadowCoord.xy).r;
     float currentDepth = shadowCoord.z;
     
-    float shadow = currentDepth > shadowDepth ? 0.0 : 1.0;
+    float bias = 0.05;
+    // 同时这里注意要有=
+    float shadow = currentDepth - bias >= shadowDepth ? 0.3 : 1.0;
 
     // 漫反射光照
     vec3 normal = normalize(fragWorldNormal);
