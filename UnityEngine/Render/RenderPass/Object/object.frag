@@ -30,7 +30,7 @@ void main()
     float shadowDepth = texture(sampler2D(shadowMap, shadowMapSampler), shadowCoord.xy).r;
     float currentDepth = shadowCoord.z;
     
-    float bias = 0.05;
+    float bias = 0.01;
     // 同时这里注意要有=
     float shadow = currentDepth - bias >= shadowDepth ? 0.3 : 1.0;
 
@@ -39,6 +39,6 @@ void main()
     float ndl = max(dot(normal, -light.dir), 0.0);
     vec3 baseColor = vec3(1.0); // 可替换为材质颜色
     vec3 diffuse = baseColor * light.color * ndl * light.intensity;
-
+    
     outColor = vec4(diffuse * shadow, 1.0);
 }
