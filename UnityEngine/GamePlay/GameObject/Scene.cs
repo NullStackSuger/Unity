@@ -13,12 +13,19 @@ public class Scene
         camera.transform.position = new Vector3(0, 0, -2.5f);
 
         GameObject light = new Light("Main Light", true);
-        light.transform.position = new Vector3(0, 0, -2.5f);
+        light.transform.position = new Vector3(0, 10, 10f);
+        light.transform.rotation = new Vector3(90, 0, 0).ToQuaternion();
         
         GameObject cube = new GameObject("Cube");
         cube.AddComponent<MeshComponent>();
         cube.transform.position = new Vector3(0, 0, 10);
         cube.transform.rotation = new Vector3(45, 0, 45).ToQuaternion();
+        
+        GameObject plane = new GameObject("Plane");
+        plane.AddComponent<MeshComponent>();
+        plane.transform.position = new Vector3(0, -3, 10);
+        plane.transform.rotation = new Vector3(-20, 0, 0).ToQuaternion();
+        plane.transform.scale = new Vector3(3, 0.1f, 3);
 
         Build();
     }

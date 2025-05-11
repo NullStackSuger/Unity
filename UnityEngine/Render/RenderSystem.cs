@@ -1,4 +1,3 @@
-using ObjLoader.Loader.Loaders;
 using UnityEngine.Events;
 using Veldrid;
 using Veldrid.Sdl2;

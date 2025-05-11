@@ -10,43 +10,55 @@ public sealed class ObjectsRenderPass : RenderPass
 {
     public ObjectsRenderPass(GraphicsDevice device, uint width, uint height, IReadOnlyList<(GameObject, MeshComponent)> objs, Texture shadowMap)
     {
-        // 更新输入信息
-        cube = objs.First().Item1; // TODO Test
+        this.device = device;
+        this.objs = objs.ToList();
         lightComponent = Light.Main;
-        
-        MeshComponent meshComponent = objs.First().Item2;
-        indices = meshComponent.indices;
-        vertices = new Vertex[meshComponent.positions.Length];
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            vertices[i] = new Vertex() { position = meshComponent.positions[i], uv = meshComponent.uvs[i], normal = meshComponent.normals[i] };
-        }
         
         // 创建Texture接收结果
         result = device.ResourceFactory.CreateTexture(TextureDescription.Texture2D(width, height, 1, 1, PixelFormat.B8_G8_R8_A8_UNorm, TextureUsage.RenderTarget | TextureUsage.Sampled));
         Texture depthResult = device.ResourceFactory.CreateTexture(TextureDescription.Texture2D(width, height, 1, 1, PixelFormat.D24_UNorm_S8_UInt, TextureUsage.DepthStencil));
         frameBuffer = device.ResourceFactory.CreateFramebuffer(new FramebufferDescription(depthResult, result));
+        
+        #region 顶点输入
+        indexBuffers = new List<DeviceBuffer>();
+        vertexBuffers = new List<DeviceBuffer>();
+        for (int i = 0; i < objs.Count; i++)
+        {
+            MeshComponent meshComponent = objs[i].Item2;
+            
+            Vertex[] vs = new Vertex[meshComponent.positions.Length];
+            for (int j = 0; j < vs.Length; j++)
+            {
+                vs[j] = new Vertex() { position = meshComponent.positions[j], uv = meshComponent.uvs[j], normal = meshComponent.normals[j] };
+            }
+            
+            indexBuffers.Add(device.ResourceFactory.CreateBuffer(new BufferDescription((uint)(meshComponent.indices.Length * sizeof(ushort)), BufferUsage.IndexBuffer)));
+            device.UpdateBuffer(indexBuffers[i], 0, meshComponent.indices);
+            vertexBuffers.Add(device.ResourceFactory.CreateBuffer(new BufferDescription((uint)(vs.Length * Marshal.SizeOf<Vertex>()), BufferUsage.VertexBuffer)));
+            device.UpdateBuffer(vertexBuffers[i], 0, vs);
+        }
+        #endregion
 
-        this.device = device;
-        
-        // 顶点Buffer
-        vertexBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)(vertices.Length * Marshal.SizeOf<Vertex>()), BufferUsage.VertexBuffer));
-        device.UpdateBuffer(vertexBuffer, 0, vertices);
-        indexBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)(indices.Length * sizeof(ushort)), BufferUsage.IndexBuffer));
-        device.UpdateBuffer(indexBuffer, 0, indices);
-        
-        // Uniform Buffer
-        mvpBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<MVPUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+        #region Uniform Buffer
+        mBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)objs.Count * MUniform.GetSize(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+        vpBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<VPUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
         lightBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<LightUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
         shadowMapSampler = device.ResourceFactory.CreateSampler(new SamplerDescription(SamplerAddressMode.Clamp, SamplerAddressMode.Clamp, SamplerAddressMode.Clamp, SamplerFilter.MinLinear_MagLinear_MipPoint, null, 0, 0, 0, 0, SamplerBorderColor.OpaqueBlack));
         var resourcesLayout = device.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription
         (
-            new ResourceLayoutElementDescription("MVP", ResourceKind.UniformBuffer, ShaderStages.Vertex),
+            new ResourceLayoutElementDescription("M", ResourceKind.UniformBuffer, ShaderStages.Vertex, ResourceLayoutElementOptions.DynamicBinding),
+            new ResourceLayoutElementDescription("VP", ResourceKind.UniformBuffer, ShaderStages.Vertex),
             new ResourceLayoutElementDescription("Light", ResourceKind.UniformBuffer, ShaderStages.Fragment),
             new ResourceLayoutElementDescription("shadowMap", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
             new ResourceLayoutElementDescription("shadowMapSampler", ResourceKind.Sampler, ShaderStages.Fragment)
         ));
-        resourceSet = device.ResourceFactory.CreateResourceSet(new ResourceSetDescription(resourcesLayout, mvpBuffer, lightBuffer, shadowMap, shadowMapSampler));
+        resourceSet = device.ResourceFactory.CreateResourceSet(new ResourceSetDescription(resourcesLayout, mBuffer, vpBuffer, lightBuffer, shadowMap, shadowMapSampler));
+        
+        VPUniform vpUniform = new VPUniform(Camera.Main.View, Camera.Main.Projection);
+        device.UpdateBuffer(vpBuffer, 0, ref vpUniform);
+        LightUniform lightUniform = new LightUniform(Light.Main.View, Light.Main.Projection, lightComponent.gameObject.transform.Forward, lightComponent.intensity, lightComponent.color);
+        device.UpdateBuffer(lightBuffer, 0, ref lightUniform);
+        #endregion
         
         // Pipeline
         pipeline = device.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription()
@@ -73,8 +85,8 @@ public sealed class ObjectsRenderPass : RenderPass
                 new VertexLayoutDescription[] { Vertex.GetLayout() },
                 device.ResourceFactory.CreateFromSpirv
                 (
-                    new ShaderDescription(ShaderStages.Vertex, File.ReadAllBytes(meshComponent.VertPath), "main"),
-                    new ShaderDescription(ShaderStages.Fragment, File.ReadAllBytes(meshComponent.FragPath), "main")
+                    new ShaderDescription(ShaderStages.Vertex, File.ReadAllBytes(objs.First().Item2.VertPath), "main"),
+                    new ShaderDescription(ShaderStages.Fragment, File.ReadAllBytes(objs.First().Item2.FragPath), "main")
                 )
             ),
             Outputs = frameBuffer.OutputDescription,
@@ -83,39 +95,41 @@ public sealed class ObjectsRenderPass : RenderPass
     
     public override void Tick(CommandList commandList)
     {
-        // Update Uniform
-        mvpUniform = new MVPUniform(cube.transform.Model, Camera.Main.View, Camera.Main.Projection);
-        device.UpdateBuffer(mvpBuffer, 0, ref mvpUniform);
-        lightUniform = new LightUniform(Light.Main.View, Light.Main.Projection, lightComponent.gameObject.transform.Forward, lightComponent.intensity, lightComponent.color);
-        device.UpdateBuffer(lightBuffer, 0, ref lightUniform);
-        
         commandList.SetFramebuffer(frameBuffer);
         commandList.ClearColorTarget(0, new RgbaFloat(0.1f, 0.1f, 0.1f, 1.0f));
         commandList.ClearDepthStencil(1, 0);
-        commandList.SetVertexBuffer(0, vertexBuffer);
-        commandList.SetIndexBuffer(indexBuffer, IndexFormat.UInt16);
         commandList.SetPipeline(pipeline);
-        commandList.SetGraphicsResourceSet(0, resourceSet);
-        commandList.DrawIndexed((uint)indices.Length, 1, 0, 0, 0);
+        
+        for (int i = 0; i < objs.Count; i++)
+        {
+            GameObject obj = objs[i].Item1;
+            MeshComponent meshComponent = objs[i].Item2;
+
+            uint offset = 0;
+            MUniform mUniform = new MUniform(obj.transform.Model);
+            offset += (uint)i * MUniform.GetSize();
+            device.UpdateBuffer(mBuffer, offset, ref mUniform);
+            
+            commandList.SetVertexBuffer(0, vertexBuffers[i]);
+            commandList.SetIndexBuffer(indexBuffers[i], IndexFormat.UInt16);
+            commandList.SetGraphicsResourceSet(0, resourceSet, [offset]);
+            commandList.DrawIndexed((uint)meshComponent.indices.Length, 1, 0, 0, 0);
+        }
     }
     
     public readonly Texture result;
     private readonly Framebuffer frameBuffer;
     private readonly GraphicsDevice device;
-    private readonly DeviceBuffer vertexBuffer;
-    private readonly DeviceBuffer indexBuffer;
-    private readonly DeviceBuffer mvpBuffer;
+    private readonly List<DeviceBuffer> indexBuffers;
+    private readonly List<DeviceBuffer> vertexBuffers;
+    private readonly DeviceBuffer mBuffer;
+    private readonly DeviceBuffer vpBuffer;
     private readonly DeviceBuffer lightBuffer;
     private readonly Sampler shadowMapSampler;
     private readonly ResourceSet resourceSet;
     private readonly Pipeline pipeline;
-
-    private readonly Vertex[] vertices;
-    private readonly ushort[] indices;
-    private MVPUniform mvpUniform;
-    private LightUniform lightUniform;
-
-    private readonly GameObject cube;
+    
+    private readonly List<(GameObject, MeshComponent)> objs;
     private readonly DirectionLightComponent lightComponent;
     
     private struct Vertex
@@ -153,15 +167,31 @@ public sealed class ObjectsRenderPass : RenderPass
         }
     }
     [StructLayout(LayoutKind.Sequential)]
-    public struct MVPUniform
+    public struct MUniform
     {
         public Matrix4x4 model;
+
+        public MUniform(Matrix4x4 model)
+        {
+            this.model = model;
+        }
+
+        public static uint GetSize()
+        {
+            uint minOffsetAlignment = 256;
+            uint rowSize = (uint)Unsafe.SizeOf<MUniform>();
+            return (rowSize + minOffsetAlignment - 1) / minOffsetAlignment * minOffsetAlignment;
+        }
+    }
+    
+    [StructLayout(LayoutKind.Sequential)]
+    public struct VPUniform
+    {
         public Matrix4x4 view;
         public Matrix4x4 projection;
 
-        public MVPUniform(Matrix4x4 model, Matrix4x4 view, Matrix4x4 projection)
+        public VPUniform(Matrix4x4 view, Matrix4x4 projection)
         {
-            this.model = model;
             this.view = view;
             this.projection = projection;
         }

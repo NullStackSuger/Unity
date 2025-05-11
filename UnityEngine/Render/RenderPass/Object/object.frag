@@ -8,7 +8,7 @@ layout(location = 2) in vec3 fragWorldPos;
 
 layout(location = 0) out vec4 outColor;
 
-layout (set = 0, binding = 1) uniform Light
+layout (set = 0, binding = 2) uniform Light
 {
     mat4 view;
     mat4 projection;
@@ -17,8 +17,8 @@ layout (set = 0, binding = 1) uniform Light
     vec3 color;
 } light;
 
-layout(set = 0, binding = 2) uniform texture2D shadowMap;
-layout(set = 0, binding = 3) uniform sampler shadowMapSampler;
+layout(set = 0, binding = 3) uniform texture2D shadowMap;
+layout(set = 0, binding = 4) uniform sampler shadowMapSampler;
 
 void main() 
 {

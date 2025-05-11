@@ -49,7 +49,7 @@ public static partial class Helper
     public static LoadResult LoadObj(string path)
     {
         var loader = objLoaderFactory.Create();
-        var fs = new FileStream(path, FileMode.Open);
+        using var fs = new FileStream(path, FileMode.Open);
         return loader.Load(fs);
     }
     public static bool LoadObj(string path, out ushort[] indices, out Vector3[] positions, out Vector2[] uvs, out Vector3[] normals)
