@@ -25,7 +25,7 @@ public sealed class PrepareRenderPass : RenderPass
         foreach (GameObject obj in sceneObj.Find())
         {
             if (!obj.TryGetComponent(out MeshComponent meshComponent)) continue;
-        
+            
             // 视锥体剔除
             // 世界坐标系的包围盒
             AABB aabb = meshComponent.AABB.Transform(obj.transform.Model);

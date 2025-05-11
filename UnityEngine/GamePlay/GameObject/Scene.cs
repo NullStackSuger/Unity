@@ -1,5 +1,4 @@
 using System.Numerics;
-using UnityEngine.Events;
 
 namespace UnityEngine;
 
@@ -14,7 +13,7 @@ public class Scene
         camera.transform.position = new Vector3(0, 0, -2.5f);
 
         GameObject light = new Light("Main Light", true);
-        light.transform.position = new Vector3(0, 5, 0);
+        light.transform.position = new Vector3(0, 0, -2.5f);
         
         GameObject cube = new GameObject("Cube");
         cube.AddComponent<MeshComponent>();

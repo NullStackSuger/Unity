@@ -5,14 +5,22 @@ namespace UnityEngine;
 
 public abstract class CameraComponent : MonoBehaviour
 {
-    public Matrix4x4 View()
-    {
-        TransformComponent transform = this.gameObject.transform;
-        // 相机的 forward 是 -Z 轴方向
-        Vector3 forward = Vector3.Transform(-Vector3.UnitZ, transform.rotation);
-        Vector3 up = Vector3.Transform(Vector3.UnitY, transform.rotation);
-        return Matrix4x4.CreateLookAt(transform.position, transform.position + forward, up);
-    }
+        public Matrix4x4 View()
+        {
+            TransformComponent transform = gameObject.transform;
+            
+            Vector3 zAxis = Vector3.Normalize(transform.Forward);
+            Vector3 xAxis = Vector3.Normalize(Vector3.Cross(transform.Up, zAxis));
+            Vector3 yAxis = Vector3.Cross(zAxis, xAxis);
+            
+            return new Matrix4x4
+            (
+                xAxis.X, yAxis.X, zAxis.X, 0,
+                xAxis.Y, yAxis.Y, zAxis.Y, 0,
+                xAxis.Z, yAxis.Z, zAxis.Z, 0,
+                -Vector3.Dot(xAxis, transform.position), -Vector3.Dot(yAxis, transform.position), -Vector3.Dot(zAxis, transform.position), 1
+            );
+        }
     
     public abstract Matrix4x4 Projection();
 }
@@ -22,12 +30,12 @@ public class OrthographicCameraComponent : CameraComponent
     public override Matrix4x4 Projection()
     {
         Matrix4x4 mat = Matrix4x4.Identity;
-        mat[0, 0] = 2.0f / (right - left);
-        mat[1, 1] = 2.0f / (top - bottom);
-        mat[2, 2] = 1.0f / (far - near);
-        mat[3, 0] = -(right + left) / (right - left);
-        mat[3, 1] = -(top + bottom) / (top - bottom);
-        mat[3, 2] = -near / (far - near);
+        mat.M11 = 2.0f / (right - left);
+        mat.M22 = 2.0f / (top - bottom);
+        mat.M33 = 1.0f / (far - near);
+        mat.M41 = -(right + left) / (right - left);
+        mat.M42 = -(top + bottom) / (top - bottom);
+        mat.M43 = -near / (far - near);
         return mat;
     }
 
@@ -35,7 +43,7 @@ public class OrthographicCameraComponent : CameraComponent
     public float right = 5;
     public float bottom = -5;
     public float top = 5;
-    public float near = 1;
+    public float near = 0.1f;
     public float far = 100;
 
     public override void DrawSetting()
@@ -68,7 +76,7 @@ public class PerspectiveCameraComponent : CameraComponent
     public override Matrix4x4 Projection()
     {
         Debug.Assert(aspect - float.Epsilon <= 0.0f, $"({aspect}), ({float.Epsilon})");
-
+        
         float tanHalfFovY = MathF.Tan(fovY * Helper.degToRad / 2.0f);
         
         Matrix4x4 mat = new Matrix4x4

@@ -17,6 +17,9 @@ public class TransformComponent : MonoBehaviour
     public Quaternion rotation;
     public Vector3 scale;
 
+    public Vector3 Forward => Vector3.Transform(Vector3.UnitZ, rotation);
+    public Vector3 Up => Vector3.Transform(Vector3.UnitY, rotation);
+    
     public Vector3 worldPosition
     {
         get
@@ -47,7 +50,7 @@ public class TransformComponent : MonoBehaviour
     }
 
     public Matrix4x4 localMatrix => Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateTranslation(position);
-
+    
     public Matrix4x4 Model
     {
         get
