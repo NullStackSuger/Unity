@@ -20,7 +20,7 @@ public static class RenderSystem
 
         var prepareRenderPass = new PrepareRenderPass();
         var shadowRenderPass = new ShadowRenderPass(device, 800, 600, prepareRenderPass.Objects);
-        var objectsRenderPass = new ObjectsRenderPass(device, 800, 600, prepareRenderPass.Objects, shadowRenderPass.shadowMap);
+        var objectsRenderPass = new ObjectRenderPass(device, 800, 600, prepareRenderPass.Objects, shadowRenderPass.shadowMap);
         var uiRenderPass = new UiRenderPass(device, objectsRenderPass.result);
         renderPasses = [prepareRenderPass, shadowRenderPass, objectsRenderPass, uiRenderPass];
         

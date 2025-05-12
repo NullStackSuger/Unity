@@ -11,8 +11,8 @@ public class MeshComponent : MonoBehaviour
         set => LoadObj(value);
     }
     private string objPath = "";
-    public string VertPath { get; private set; }
-    public string FragPath { get; private set; }
+    public ShadowShader shadowShader;
+    public ObjectShader objectShader;
 
     public AABB AABB { get; private set; }
 
@@ -22,16 +22,8 @@ public class MeshComponent : MonoBehaviour
     public Vector3[] normals;
 
     private bool showSelectObjPanel;
-    private bool showSelectVertPanel;
-    private bool showSelectFragPanel;
-
-    public MeshComponent()
-    {
-        //TODO Test
-        ObjPath = FileSystem.GetLikeFiles(".obj")?.First();
-        VertPath = $"{Define.AssetPath}\\Shaders\\Object\\object.vert.spv";
-        FragPath = $"{Define.AssetPath}\\Shaders\\Object\\object.frag.spv";
-    }
+    private bool showSelectShadowShaderPanel;
+    private bool showSelectObjectShaderPanel;
 
     public void LoadObj(string objPath)
     {
@@ -87,52 +79,54 @@ public class MeshComponent : MonoBehaviour
             }
         }
         #endregion
-        
-        #region ShaderPath
-        if (ImGui.Button("Vert: "))
+
+        #region Shader
+        if (ImGui.Button($"{nameof(ShadowShader)}: "))
         {
-            showSelectVertPanel = true;
+            showSelectShadowShaderPanel = true;
         }
         ImGui.SameLine();
-        ImGui.Text(VertPath.Substring(Define.AssetPath.Length + 1));
-        
-        if (showSelectVertPanel)
+        ImGui.Text(shadowShader.ToString());
+        if (showSelectShadowShaderPanel)
         {
-            if (ImGui.Begin($"Select##Vert", ref showSelectVertPanel))
+            if (ImGui.Begin($"Select Shadow Shader", ref showSelectShadowShaderPanel))
             {
-                foreach (string fullPath in FileSystem.GetLikeFiles(".spv"))
+                foreach (var (name, type) in Define.TypeMap["Shader"])
                 {
-                    if (ImGui.Selectable(fullPath.Substring(Define.AssetPath.Length + 1)))
+                    if (typeof(ShadowShader).IsAssignableFrom(type))
                     {
-                        VertPath = fullPath;
-                        showSelectVertPanel = false;
+                        if (ImGui.Selectable(name))
+                        {
+                            shadowShader = Activator.CreateInstance(type) as ShadowShader;
+                            showSelectShadowShaderPanel = false;
+                        }
                     }
                 }
-                
                 ImGui.End();
             }
         }
         
-        if (ImGui.Button("Frag: "))
+        if (ImGui.Button($"{nameof(ObjectShader)}: "))
         {
-            showSelectFragPanel = true;
+            showSelectObjectShaderPanel = true;
         }
         ImGui.SameLine();
-        ImGui.Text(FragPath.Substring(Define.AssetPath.Length + 1));
-        
-        if (showSelectFragPanel)
+        ImGui.Text(objectShader.ToString());
+        if (showSelectObjectShaderPanel)
         {
-            if (ImGui.Begin($"Select##Frag", ref showSelectFragPanel))
+            if (ImGui.Begin($"Select Object Shader", ref showSelectObjectShaderPanel))
             {
-                foreach (string fullPath in FileSystem.GetLikeFiles(".spv"))
+                foreach (var (name, type) in Define.TypeMap["Shader"])
                 {
-                    if (ImGui.Selectable(fullPath.Substring(Define.AssetPath.Length + 1)))
+                    if (typeof(ObjectShader).IsAssignableFrom(type))
                     {
-                        FragPath = fullPath;
-                        showSelectFragPanel = false;
+                        if (ImGui.Selectable(name))
+                        {
+                            objectShader = Activator.CreateInstance(type) as ObjectShader;
+                            showSelectObjectShaderPanel = false;
+                        }
                     }
                 }
-                
                 ImGui.End();
             }
         }

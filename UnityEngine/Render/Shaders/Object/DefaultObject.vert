@@ -1,6 +1,6 @@
 #version 450
 
-// glslc D://Rider//Project//Unity//UnityEngine//Render//RenderPass//Object//object.vert -o D://Rider//Project//Unity//Sandbox//Asset//Shaders///Object//object.vert.spv
+// glslc D://Rider//Project//Unity//UnityEngine//Render//Shaders//Object//DefaultObject.vert -o D://Rider//Project//Unity//Sandbox//Asset//Shaders///Object//DefaultObject.vert.spv
 
 layout(location = 0) out vec2 fragUV;
 layout(location = 1) out vec3 fragWorldNormal;
@@ -13,8 +13,6 @@ layout(location = 2) in vec3 normal;
 layout (set = 0, binding = 0) uniform M
 {
     mat4 model;
-    mat4 view;
-    mat4 projection;
 } m;
 layout (set = 0, binding = 1) uniform VP
 {

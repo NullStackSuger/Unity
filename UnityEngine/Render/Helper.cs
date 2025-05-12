@@ -21,29 +21,23 @@ public static partial class Helper
     public static Vector3 ToVector3(this Quaternion q)
     {
         q = Quaternion.Normalize(q);
-        Matrix4x4 m = Matrix4x4.CreateFromQuaternion(q);
-        
-        Vector3 angles;
 
-        // Pitch (X)
-        angles.X = MathF.Asin(-m.M32);
-    
-        // Handle Gimbal Lock
-        if (MathF.Abs(m.M32) < 0.9999f)
-        {
-            // Yaw (Y)
-            angles.Y = MathF.Atan2(m.M31, m.M33);
-            // Roll (Z)
-            angles.Z = MathF.Atan2(m.M12, m.M22);
-        }
+        float sinr_cosp = 2 * (q.W * q.X + q.Y * q.Z);
+        float cosr_cosp = 1 - 2 * (q.X * q.X + q.Y * q.Y);
+        float x = MathF.Atan2(sinr_cosp, cosr_cosp); // Roll
+
+        float sinp = 2 * (q.W * q.Y - q.Z * q.X);
+        float y;
+        if (MathF.Abs(sinp) >= 1)
+            y = MathF.CopySign(MathF.PI / 2, sinp); // Pitch (gimbal lock)
         else
-        {
-            // Gimbal lock: Yaw and Roll combined
-            angles.Y = MathF.Atan2(-m.M13, m.M11);
-            angles.Z = 0;
-        }
+            y = MathF.Asin(sinp);
 
-        return angles * rad2Deg;
+        float siny_cosp = 2 * (q.W * q.Z + q.X * q.Y);
+        float cosy_cosp = 1 - 2 * (q.Y * q.Y + q.Z * q.Z);
+        float z = MathF.Atan2(siny_cosp, cosy_cosp); // Yaw
+
+        return new Vector3(x, y, z) * rad2Deg;
     }
 
     public static LoadResult LoadObj(string path)

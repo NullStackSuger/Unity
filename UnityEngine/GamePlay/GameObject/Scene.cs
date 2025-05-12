@@ -17,12 +17,18 @@ public class Scene
         light.transform.rotation = new Vector3(90, 0, 0).ToQuaternion();
         
         GameObject cube = new GameObject("Cube");
-        cube.AddComponent<MeshComponent>();
+        MeshComponent meshComponent = cube.AddComponent<MeshComponent>();
+        meshComponent.ObjPath = FileSystem.GetLikeFiles(".obj")?.First();
+        meshComponent.shadowShader = new DefaultShadowShader();
+        meshComponent.objectShader = new DefaultObjectShader();
         cube.transform.position = new Vector3(0, 0, 10);
         cube.transform.rotation = new Vector3(45, 0, 45).ToQuaternion();
         
         GameObject plane = new GameObject("Plane");
-        plane.AddComponent<MeshComponent>();
+        meshComponent = plane.AddComponent<MeshComponent>();
+        meshComponent.ObjPath = FileSystem.GetLikeFiles(".obj")?.First();
+        meshComponent.shadowShader = new DefaultShadowShader();
+        meshComponent.objectShader = new DefaultObjectShader();
         plane.transform.position = new Vector3(0, -3, 10);
         plane.transform.rotation = new Vector3(-20, 0, 0).ToQuaternion();
         plane.transform.scale = new Vector3(3, 0.1f, 3);

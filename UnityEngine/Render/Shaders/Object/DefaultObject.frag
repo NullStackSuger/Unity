@@ -1,6 +1,6 @@
 #version 450
 
-// glslc D://Rider//Project//Unity//UnityEngine//Render//RenderPass//Object//object.frag -o D://Rider//Project//Unity//Sandbox//Asset//Shaders//Object//object.frag.spv
+// glslc D://Rider//Project//Unity//UnityEngine//Render//Shaders//Object//DefaultObject.frag -o D://Rider//Project//Unity//Sandbox//Asset//Shaders//Object//DefaultObject.frag.spv
 
 layout(location = 0) in vec2 fragUV;
 layout(location = 1) in vec3 fragWorldNormal;
