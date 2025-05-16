@@ -22,7 +22,7 @@ public class Scene
         meshComponent.shadowShader = new DefaultShadowShader();
         meshComponent.objectShader = new DefaultObjectShader();
         cube.transform.position = new Vector3(0, 0, 10);
-        cube.transform.rotation = new Vector3(45, 0, 45).ToQuaternion();
+        cube.transform.rotation = new Vector3(0, 0, 0).ToQuaternion();
         
         GameObject plane = new GameObject("Plane");
         meshComponent = plane.AddComponent<MeshComponent>();

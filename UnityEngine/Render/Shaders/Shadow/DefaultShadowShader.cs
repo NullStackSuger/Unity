@@ -8,9 +8,9 @@ namespace UnityEngine;
 
 public class DefaultShadowShader : ShadowShader
 {
-    public override void Awake(GraphicsDevice device, Framebuffer frameBuffer, MeshComponent mesh)
+    protected override void Awake()
     {
-        base.Awake(device, frameBuffer, mesh);
+        base.Awake();
         
         #region 顶点输入
         Vertex[] vs = new Vertex[mesh.positions.Length];
@@ -25,14 +25,10 @@ public class DefaultShadowShader : ShadowShader
         #endregion
         
         #region Uniform Buffer
-        mBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<MUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-        vpBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<VPUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-        var resourceLayout = device.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription
-        (
-            new ResourceLayoutElementDescription("M", ResourceKind.UniformBuffer, ShaderStages.Vertex),
-            new ResourceLayoutElementDescription("VP", ResourceKind.UniformBuffer, ShaderStages.Vertex)
-        ));
-        resourceSet = device.ResourceFactory.CreateResourceSet(new ResourceSetDescription(resourceLayout, mBuffer, vpBuffer));
+        Set("M", new MUniform(mesh.gameObject.transform.Model));
+        Set("VP", new VPUniform(Light.Main.View, Light.Main.Projection));
+        var resourceLayout = CreateResourceLayout();
+        resourceSet = CreateResourceSet(resourceLayout);
         #endregion
         
         // Pipeline
@@ -71,20 +67,15 @@ public class DefaultShadowShader : ShadowShader
     public override void Update()
     {
         base.Update();
-        
-        MUniform mUniform = new MUniform(mesh.gameObject.transform.Model);
-        device.UpdateBuffer(mBuffer, 0, ref mUniform);
-        VPUniform lightVpUniform = new VPUniform(Light.Main.View, Light.Main.Projection);
-        device.UpdateBuffer(vpBuffer, 0, ref lightVpUniform);
+
+        Set("M", new MUniform(mesh.gameObject.transform.Model));
+        Set("VP", new VPUniform(Light.Main.View, Light.Main.Projection));
     }
     
     public override string ToString()
     {
         return nameof(DefaultShadowShader);
     }
-    
-    private DeviceBuffer mBuffer;
-    private DeviceBuffer vpBuffer;
 
     private struct Vertex
     {

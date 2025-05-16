@@ -1,5 +1,4 @@
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Veldrid;
 using Veldrid.SPIRV;
@@ -8,9 +7,11 @@ namespace UnityEngine;
 
 public class DefaultObjectShader : ObjectShader
 {
-    public override void Awake(GraphicsDevice device, Framebuffer frameBuffer, MeshComponent mesh, Texture shadowMap)
+    protected override void Awake()
     {
-        base.Awake(device, frameBuffer, mesh, shadowMap);
+        base.Awake();
+
+        DirectionLightComponent light = Light.Main;
         
         #region 顶点输入
         Vertex[] vs = new Vertex[mesh.positions.Length];
@@ -25,19 +26,13 @@ public class DefaultObjectShader : ObjectShader
         #endregion
         
         #region Uniform Buffer
-        mBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<MUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-        vpBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<VPUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-        lightBuffer = device.ResourceFactory.CreateBuffer(new BufferDescription((uint)Unsafe.SizeOf<LightUniform>(), BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-        shadowMapSampler = device.ResourceFactory.CreateSampler(new SamplerDescription(SamplerAddressMode.Clamp, SamplerAddressMode.Clamp, SamplerAddressMode.Clamp, SamplerFilter.MinLinear_MagLinear_MipPoint, null, 0, 0, 0, 0, SamplerBorderColor.OpaqueBlack));
-        var resourceLayout = device.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription
-        (
-            new ResourceLayoutElementDescription("M", ResourceKind.UniformBuffer, ShaderStages.Vertex),
-            new ResourceLayoutElementDescription("VP", ResourceKind.UniformBuffer, ShaderStages.Vertex),
-            new ResourceLayoutElementDescription("Light", ResourceKind.UniformBuffer, ShaderStages.Fragment),
-            new ResourceLayoutElementDescription("shadowMap", ResourceKind.TextureReadOnly, ShaderStages.Fragment),
-            new ResourceLayoutElementDescription("shadowMapSampler", ResourceKind.Sampler, ShaderStages.Fragment)
-        ));
-        resourceSet = device.ResourceFactory.CreateResourceSet(new ResourceSetDescription(resourceLayout, mBuffer, vpBuffer, lightBuffer, shadowMap, shadowMapSampler));
+        Set("M", new MUniform(mesh.gameObject.transform.Model));
+        Set("VP", new VPUniform(Camera.Main.View, Camera.Main.Projection));
+        Set("Light", new LightUniform(Light.Main.View, Light.Main.Projection, light.gameObject.transform.Forward, light.intensity, light.color));
+        Set("shadowMap", shadowMap);
+        
+        var resourceLayout = CreateResourceLayout();
+        resourceSet = CreateResourceSet(resourceLayout);
         #endregion
         
         pipeline = device.ResourceFactory.CreateGraphicsPipeline(new GraphicsPipelineDescription()
@@ -77,24 +72,16 @@ public class DefaultObjectShader : ObjectShader
         base.Update();
         
         DirectionLightComponent light = Light.Main;
-        
-        MUniform mUniform = new MUniform(mesh.gameObject.transform.Model);
-        device.UpdateBuffer(mBuffer, 0, ref mUniform);
-        VPUniform vpUniform = new VPUniform(Camera.Main.View, Camera.Main.Projection);
-        device.UpdateBuffer(vpBuffer, 0, ref vpUniform);
-        LightUniform lightUniform = new LightUniform(Light.Main.View, Light.Main.Projection, light.gameObject.transform.Forward, light.intensity, light.color);
-        device.UpdateBuffer(lightBuffer, 0, ref lightUniform);
+
+        Set("M", new MUniform(mesh.gameObject.transform.Model));
+        Set("VP", new VPUniform(Camera.Main.View, Camera.Main.Projection));
+        Set("Light", new LightUniform(Light.Main.View, Light.Main.Projection, light.gameObject.transform.Forward, light.intensity, light.color));
     }
 
     public override string ToString()
     {
         return nameof(DefaultObjectShader);
     }
-
-    private DeviceBuffer mBuffer;
-    private DeviceBuffer vpBuffer;
-    private DeviceBuffer lightBuffer;
-    private Sampler shadowMapSampler;
     
     private struct Vertex
     {
