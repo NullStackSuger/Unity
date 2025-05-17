@@ -1,8 +1,4 @@
-using System.Diagnostics;
-using System.Numerics;
-using System.Text;
 using ImGuiNET;
-using UnityEngine.Events;
 using Veldrid;
 
 namespace UnityEngine;
@@ -11,18 +7,18 @@ public sealed class UiRenderPass : RenderPass
 {
     public UiRenderPass(GraphicsDevice device, Texture objectsRender)
     {
-        var window = Window.window;
-        this.debugInfos = new List<DebugEvent>(10);
         this.device = device;
-        uiRenderer = new ImGuiController(device, device.MainSwapchain.Framebuffer.OutputDescription, window.Width, window.Height);
+        uiRenderer = new ImGuiController(device, device.MainSwapchain.Framebuffer.OutputDescription, Window.window.Width, Window.window.Height);
         
-        // 场景渲染结果
-        this.objectsRender = objectsRender;
-        objectsRenderView = uiRenderer.GetOrCreateImGuiBinding(device.ResourceFactory, device.ResourceFactory.CreateTextureView(this.objectsRender));
-
-        // 事件
-        EventSystem.Add(new WindowResizeEventHandler(uiRenderer));
-        EventSystem.Add(new DebugEventHandler(debugInfos));
+        // Editor Window
+        BackGroundEditorWindow bg = new();
+        SceneEditorWindow sceneWindow = new(device, uiRenderer, objectsRender);
+        GameEditorWindow gameWindow = new(device, uiRenderer, objectsRender);
+        ConsoleEditorWindow consoleWindow = new();
+        ProjectEditorWindow projectWindow = new();
+        HierarchyEditorWindow hierarchyWindow = new();
+        InspectorEditorWindow inspectorWindow = new();
+        editorWindows = [bg, sceneWindow, gameWindow, consoleWindow, projectWindow, hierarchyWindow, inspectorWindow];
         
         // 设置Ui格式
         var style = ImGui.GetStyle();
@@ -40,9 +36,9 @@ public sealed class UiRenderPass : RenderPass
         style.Colors[(int)ImGuiCol.ResizeGrip] = Color.Gray; // 窗口右下角调整大小图标的颜色
         style.Colors[(int)ImGuiCol.ResizeGripHovered] = new Color(0.5f); // 窗口横向调整大小的颜色
         style.Colors[(int)ImGuiCol.ResizeGripActive] = new Color(0.5f); // 窗口竖向调整大小的颜色
-        style.Colors[(int)ImGuiCol.Button] = new Color(0.5f); // 按钮颜色
+        style.Colors[(int)ImGuiCol.Button] = new Color(0.3f); // 按钮颜色
         style.Colors[(int)ImGuiCol.ButtonHovered] = new Color(0.4f); // 按钮悬停
-        style.Colors[(int)ImGuiCol.ButtonActive] = new Color(0.3f); // 按钮点击
+        style.Colors[(int)ImGuiCol.ButtonActive] = new Color(0.15f); // 按钮点击
         style.Colors[(int)ImGuiCol.FrameBg] = new Color(0.4f); // 输入背景色
         style.Colors[(int)ImGuiCol.FrameBgHovered] = new Color(0.5f); // 输入悬停颜色
         style.Colors[(int)ImGuiCol.FrameBgActive] = new Color(0.4f); // 输入点击颜色
@@ -63,90 +59,14 @@ public sealed class UiRenderPass : RenderPass
         
         uiRenderer.Update(deltaTime, snapshot);
         
-        #region DockSpace BG
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f);
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, Vector4.Zero); 
-        ImGui.SetNextWindowPos(Vector2.Zero);
-        ImGui.SetNextWindowSize(ImGui.GetIO().DisplaySize);
-        ImGui.SetNextWindowViewport(ImGui.GetMainViewport().ID);
-        ImGui.Begin("DockSpace Window",
-            ImGuiWindowFlags.NoTitleBar |
-            ImGuiWindowFlags.NoCollapse |
-            ImGuiWindowFlags.NoResize |
-            ImGuiWindowFlags.NoMove |
-            ImGuiWindowFlags.NoBringToFrontOnFocus |
-            ImGuiWindowFlags.NoNavFocus |
-            ImGuiWindowFlags.NoDocking |
-            ImGuiWindowFlags.NoBackground);
-        
-        ImGui.DockSpace(ImGui.GetID("DockSpace"), Vector2.Zero, ImGuiDockNodeFlags.None);
-        
-        ImGui.End();
-        ImGui.PopStyleColor();
-        ImGui.PopStyleVar(2);
-        #endregion
-        #region Debug
-        ImGui.Begin("Debug", ImGuiWindowFlags.MenuBar);
-        
-        float messagePosX = ImGui.GetCursorPos().X;
-        float y = ImGui.GetCursorPos().Y;
-        foreach (var info in GetDebug(level))
+        foreach (AEditorWindow window in editorWindows)
         {
-            ImGui.SetCursorPos(new Vector2(messagePosX, y));
-            ImGui.TextColored(info.color, $"[{info.level}]: {info.message}");
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip($"({info.path}, {info.line})  {info.time}");
-            }
-            y += 30;
+            ImGui.Begin(window.name, window.flags);
+            window.Draw();
+            ImGui.End();
         }
         
-        if (ImGui.BeginMenuBar())
-        {
-            ImGui.Checkbox("Info", ref showInfo);
-            if (showInfo)
-            {
-                level |= DebugLevel.Info;
-            }
-            else
-            {
-                level &= ~DebugLevel.Info;
-            }
-            
-            ImGui.Checkbox("Warning", ref showWarning);
-            if (showWarning)
-            {
-                level |= DebugLevel.Warning;
-            }
-            else
-            {
-                level &= ~DebugLevel.Warning;
-            }
-            
-            ImGui.Checkbox("Error", ref showError);
-            if (showError)
-            {
-                level |= DebugLevel.Error;
-            }
-            else
-            {
-                level &= ~DebugLevel.Error;
-            }
-            
-            if (ImGui.Button("Clear"))
-            {
-                ClearDebug();
-            }
-
-            ImGui.Text($"Count: {debugInfos.Count}");
-            
-            ImGui.EndMenuBar();
-        }
-        
-        ImGui.End();
-        #endregion
-        #region Asset
+        /*#region Asset
         ImGui.Begin("Asset", ImGuiWindowFlags.MenuBar);
         // 点击空白清空选中文件
         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsAnyItemHovered())
@@ -264,12 +184,12 @@ public sealed class UiRenderPass : RenderPass
         {
             if (ImGui.Button("Rebuild"))
             {
-                scene.Build();
+                Scene.ActiveScene.Build();
             }
             
             ImGui.EndMenuBar();
         }
-        DrawScene(scene, ref renameInfo, ref renameBuffer, ref selectedObject);
+        DrawScene(Scene.ActiveScene, ref renameInfo, ref renameBuffer, ref selectedObject);
         ImGui.End();
 
         static void DrawScene(TreeNode<Scene.SceneObjectInfo> node, ref Scene.SceneObjectInfo renameInfo, ref byte[] renameBuffer, ref Scene.SceneObjectInfo selectedObject)
@@ -358,15 +278,6 @@ public sealed class UiRenderPass : RenderPass
             ImGui.PopID();
         }
         #endregion
-        #region Editor
-        ImGui.Begin("Editor");
-        ImGui.Image(objectsRenderView, new Vector2(objectsRender.Width, objectsRender.Height));
-        ImGui.End();
-        #endregion
-        #region Run
-        ImGui.Begin("Run");
-        ImGui.End();
-        #endregion
         #region Setting
         ImGui.Begin("Setting");
         if (selectedObject != null)
@@ -388,84 +299,21 @@ public sealed class UiRenderPass : RenderPass
                 }   
             }
         }
-        #endregion
+        #endregion*/
         
         uiRenderer.Render(device, commandList);
     }
     
-    #region Debug
-    /// <summary>
-    /// 清除输出信息
-    /// </summary>
-    public void ClearDebug()
-    {
-        debugInfos.Clear();
-    }
-
-    /// <summary>
-    /// 获取输出信息
-    /// </summary>
-    public IEnumerable<DebugEvent> GetDebug(DebugLevel level)
-    {
-        foreach (DebugEvent info in debugInfos)
-        {
-            if ((info.level & level) != 0)
-            {
-                yield return info;
-            }
-        }
-    }
-
-    private bool showInfo = true, showWarning = true, showError = true;
-    public DebugLevel level = DebugLevel.All;
-    private readonly List<DebugEvent> debugInfos;
-    #endregion
     #region Asset
     private FileSystem.FileInfo selectedFile;
     #endregion
     #region Scene
     private Scene.SceneObjectInfo selectedObject;
-    private Scene.SceneObjectInfo renameInfo = null;
-    private byte[] renameBuffer = null;
-    private readonly Scene scene = Scene.ActiveScene;
-    #endregion
-    #region Editor
-    private readonly Texture objectsRender;
-    private readonly IntPtr objectsRenderView;
+    private Scene.SceneObjectInfo renameInfo;
+    private byte[] renameBuffer;
     #endregion
     
     private readonly GraphicsDevice device;
     private readonly ImGuiController uiRenderer;
-    
-    private class WindowResizeEventHandler : AEvent<WindowResizeEvent>
-    {
-        private static ImGuiController uiRenderer; // TODO 不应该有状态, 目前用static保证合理
-
-        public WindowResizeEventHandler(ImGuiController uiRenderer)
-        {
-            WindowResizeEventHandler.uiRenderer = uiRenderer;
-        }
-        
-        protected override async Task Run(WindowResizeEvent a)
-        {
-            uiRenderer.WindowResized(a.width, a.height);
-            await Task.CompletedTask;
-        }
-    }
-    
-    private class DebugEventHandler : AEvent<DebugEvent>
-    {
-        private static List<DebugEvent> debugInfos; // TODO 不应该有状态, 目前用static保证合理
-
-        public DebugEventHandler(List<DebugEvent> debugInfos)
-        {
-            DebugEventHandler.debugInfos = debugInfos;
-        }
-        
-        protected override async Task Run(DebugEvent a)
-        {
-            debugInfos.Add(a);
-            await Task.CompletedTask;
-        }
-    }
+    private readonly AEditorWindow[] editorWindows;
 }

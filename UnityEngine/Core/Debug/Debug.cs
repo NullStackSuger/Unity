@@ -14,15 +14,61 @@ namespace UnityEngine
         {
             protected override async Task Run(DebugEvent a)
             {
-                Console.WriteLine($"[{a.level}]: {a.message}");
+                // Info
+                if ((a.level & DebugLevel.Info) != 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    Console.WriteLine($"[{a.level}]: {a.message}");
+                }
+                // Warning
+                else if ((a.level & DebugLevel.Warning) != 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"[{a.level}]: {a.message}");
+                }
+                // Error
+                else if ((a.level & DebugLevel.Error) != 0)
+                {
+                    throw new Exception($"[{a.level}]: {a.message}");
+                }
                 await Task.CompletedTask;
             }
         }
+        
+        /// <summary>
+        /// 获取输出信息
+        /// </summary>
+        public static IEnumerable<DebugEvent> Get()
+        {
+            foreach (DebugEvent info in debugInfos)
+            {
+                if ((info.level & Level) != 0)
+                {
+                    yield return info;
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 清除输出信息
+        /// </summary>
+        public static void Clear()
+        {
+            InfoCount = 0;
+            WarningCount = 0;
+            ErrorCount = 0;
+            debugInfos.Clear();
+        }
+
+        public static DebugLevel Level = DebugLevel.All;
+        public static uint InfoCount { get; private set; }
+        public static uint WarningCount { get; private set; }
+        public static uint ErrorCount { get; private set; }
+        private static readonly List<DebugEvent> debugInfos = new();
 
         [Conditional("DEBUG")]
         public static void Log(string message)
         {
-            Console.ForegroundColor = ConsoleColor.Gray;
             DebugEvent logEvent = new()
             {
                 level = DebugLevel.Info, 
@@ -40,6 +86,8 @@ namespace UnityEngine
                 logEvent.method = caller.GetMethod()!.Name;
             }
             
+            ++InfoCount;
+            debugInfos.Add(logEvent);
             EventSystem.PublishAsync(logEvent);
         }
         [Conditional("DEBUG")]
@@ -51,7 +99,6 @@ namespace UnityEngine
         [Conditional("DEBUG")]
         public static void Warning(string message)
         {
-            Console.ForegroundColor = ConsoleColor.Yellow;
             DebugEvent warningEvent = new()
             {
                 level = DebugLevel.Warning, 
@@ -69,6 +116,8 @@ namespace UnityEngine
                 warningEvent.method = caller.GetMethod()!.Name;
             }
             
+            ++WarningCount;
+            debugInfos.Add(warningEvent);
             EventSystem.PublishAsync(warningEvent);
         }
         [Conditional("DEBUG")]
@@ -98,6 +147,8 @@ namespace UnityEngine
                 errorEvent.method = caller.GetMethod()!.Name;
             }
             
+            ++ErrorCount;
+            debugInfos.Add(errorEvent);
             EventSystem.PublishAsync(errorEvent);
         }
         [Conditional("DEBUG")]
