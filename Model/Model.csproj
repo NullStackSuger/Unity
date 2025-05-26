@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <RootNamespace>ET</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Core\Core.csproj" />
+      <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Veldrid.SDL2" Version="4.9.0" />
+    </ItemGroup>
+
+</Project>

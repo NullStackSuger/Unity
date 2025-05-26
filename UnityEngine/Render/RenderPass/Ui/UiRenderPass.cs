@@ -171,8 +171,8 @@ public sealed class UiRenderPass : RenderPass
             
             ImGui.PopID();
         }
-        #endregion
-        #region Scene
+        #endregion*/
+        /*#region Scene
         ImGui.Begin("Scene", ImGuiWindowFlags.MenuBar);
         // 点击空白清空选中Object
         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsAnyItemHovered())
@@ -277,8 +277,8 @@ public sealed class UiRenderPass : RenderPass
             
             ImGui.PopID();
         }
-        #endregion
-        #region Setting
+        #endregion*/
+        /*#region Setting
         ImGui.Begin("Setting");
         if (selectedObject != null)
         {

@@ -1,0 +1,13 @@
+D:\Rider\Project\Unity\ThirdParty\bin\Debug\net8.0\ThirdParty.deps.json
+D:\Rider\Project\Unity\ThirdParty\bin\Debug\net8.0\ThirdParty.dll
+D:\Rider\Project\Unity\ThirdParty\bin\Debug\net8.0\ThirdParty.pdb
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ThirdParty.GeneratedMSBuildEditorConfig.editorconfig
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ThirdParty.AssemblyInfoInputs.cache
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ThirdParty.AssemblyInfo.cs
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ThirdParty.csproj.CoreCompileInputs.cache
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ThirdParty.sourcelink.json
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ThirdParty.dll
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\refint\ThirdParty.dll
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ThirdParty.pdb
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ref\ThirdParty.dll
+D:\Rider\Project\Unity\ThirdParty\obj\Debug\net8.0\ThirdParty.csproj.AssemblyReference.cache

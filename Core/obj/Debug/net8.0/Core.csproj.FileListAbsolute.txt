@@ -1,0 +1,16 @@
+D:\Rider\Project\Unity\Core\bin\Debug\net8.0\Core.deps.json
+D:\Rider\Project\Unity\Core\bin\Debug\net8.0\Core.dll
+D:\Rider\Project\Unity\Core\bin\Debug\net8.0\Core.pdb
+D:\Rider\Project\Unity\Core\bin\Debug\net8.0\ThirdParty.dll
+D:\Rider\Project\Unity\Core\bin\Debug\net8.0\ThirdParty.pdb
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.csproj.AssemblyReference.cache
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.AssemblyInfoInputs.cache
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.AssemblyInfo.cs
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.csproj.CoreCompileInputs.cache
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.sourcelink.json
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.csproj.Up2Date
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.dll
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\refint\Core.dll
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\Core.pdb
+D:\Rider\Project\Unity\Core\obj\Debug\net8.0\ref\Core.dll

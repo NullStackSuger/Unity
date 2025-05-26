@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <Nullable>disable</Nullable>
+        <UseWindowsForms>true</UseWindowsForms>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>ET</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Core\Core.csproj" />
+      <ProjectReference Include="..\Editor\Editor.csproj" />
+      <ProjectReference Include="..\HotfixView\HotfixView.csproj" />
+      <ProjectReference Include="..\Hotfix\Hotfix.csproj" />
+      <ProjectReference Include="..\ModelView\ModelView.csproj" />
+      <ProjectReference Include="..\Model\Model.csproj" />
+      <ProjectReference Include="..\ThirdParty\ThirdParty.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Veldrid.SDL2" Version="4.9.0" />
+    </ItemGroup>
+
+</Project>
