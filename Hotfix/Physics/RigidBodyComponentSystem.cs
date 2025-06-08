@@ -35,9 +35,8 @@ public static class RigidBodyComponentSystem
     {
         protected override void Update(RigidBodyComponent self)
         {
-            // TODO 这里得到的是WorldPosition, 不能直接设置Position
             TransformComponent transformComponent = self.GameObject.GetComponent<TransformComponent>();
-            transformComponent.position = self.rigidBody.WorldTransform.Origin.ToNumerics();
+            transformComponent.WorldPosition = self.rigidBody.WorldTransform.Origin.ToNumerics();
             transformComponent.rotation = self.rigidBody.WorldTransform.Quaternion().ToNumerics();
         }
     }

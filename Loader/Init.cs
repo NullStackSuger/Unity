@@ -11,7 +11,7 @@ public static class Init
 
         #region Build Objs
         Scene.Instance.ActiveScene = new GameObject();
-        Scene.Instance.ActiveScene.AddComponent<TransformComponent, Vector3, Quaternion, Vector3>(Vector3.Zero, Quaternion.Identity, Vector3.One);
+        Scene.Instance.ActiveScene.AddComponent<TransformComponent, Vector3, Quaternion, Vector3>(new Vector3(10, 0, 0), new Vector3(0, 0, 0).ToQuaternion(), Vector3.One);
         Scene.Instance.ActiveScene.AddComponent<PhysicsSceneComponent, float>(-10);
         
         GameObject light = Scene.Instance.ActiveScene.AddChild();
@@ -26,13 +26,26 @@ public static class Init
         ball.AddComponent<TransformComponent, Vector3, Quaternion, Vector3>(new Vector3(0, 0, 10), Quaternion.Identity, Vector3.One);
         ball.AddComponent<SphereCollisionComponent, float>(0.5f);
         ball.AddComponent<RigidBodyComponent, float>(1);
-        ball.AddComponent<TestComponent>();
         
         GameObject plane = Scene.Instance.ActiveScene.AddChild();
-        plane.AddComponent<TransformComponent, Vector3, Quaternion, Vector3>(new Vector3(0, -3, 10), new Vector3(20, 0, 0).ToQuaternion(), new Vector3(3, 0.1f, 3));
+        plane.AddComponent<TransformComponent, Vector3, Quaternion, Vector3>(new Vector3(0, -3, 10), new Vector3(0, 0, 0).ToQuaternion(), new Vector3(1, 1f, 1));
         plane.AddComponent<BoxCollisionComponent, Vector3>(new Vector3(3, 0.1f, 3));
         plane.AddComponent<RigidBodyComponent, float>(0);
         #endregion
+        
+        Log.Warning(ball.GetComponent<TransformComponent>().WorldPosition.ToString());
+        ball.GetComponent<TransformComponent>().WorldPosition = new Vector3(0, 0, 0);
+        Log.Warning(ball.GetComponent<TransformComponent>().WorldPosition.ToString());
+        Log.Warning(ball.GetComponent<TransformComponent>().position.ToString());
+        /*Log.Warning(scene.GetComponent<TransformComponent>().position.ToString());
+        Log.Warning(scene.GetComponent<TransformComponent>().Local.ToString());
+        Log.Warning(scene.GetComponent<TransformComponent>().WorldPosition.ToString());
+        Log.Warning(scene.GetComponent<TransformComponent>().World.ToString());
+        Log.Debug("----------------------------------------------------");
+        Log.Warning(ball.GetComponent<TransformComponent>().position.ToString());
+        Log.Warning(ball.GetComponent<TransformComponent>().Local.ToString());
+        Log.Warning(ball.GetComponent<TransformComponent>().WorldPosition.ToString());
+        Log.Warning(ball.GetComponent<TransformComponent>().World.ToString());*/
         
         if (Options.IsEditor)
         {
