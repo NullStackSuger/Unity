@@ -29,6 +29,7 @@ namespace ET
             {
                 return;
             }
+
             this.StateMachine = default;
             queue.Enqueue(this);
         }

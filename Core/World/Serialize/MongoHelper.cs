@@ -46,7 +46,7 @@ public static class MongoHelper
     {
         if (obj is DisposeObject disposeObject)
         {
-            disposeObject.BeginInit();
+            disposeObject.OnSerialize();
         }
         return obj.ToJson(defaultSettings);
     }
@@ -55,7 +55,7 @@ public static class MongoHelper
     {
         if (obj is DisposeObject disposeObject)
         {
-            disposeObject.BeginInit();
+            disposeObject.OnSerialize();
         }
         return obj.ToJson(settings);
     }
@@ -67,7 +67,7 @@ public static class MongoHelper
             T obj = BsonSerializer.Deserialize<T>(str);
             if (obj is DisposeObject disposeObject)
             {
-                disposeObject.EndInit();
+                disposeObject.OnDeserialize();
             }
             return obj;
         }
@@ -82,7 +82,7 @@ public static class MongoHelper
         object obj = BsonSerializer.Deserialize(str, type);
         if (obj is DisposeObject disposeObject)
         {
-            disposeObject.EndInit();
+            disposeObject.OnDeserialize();
         }
         return obj;
     }
@@ -91,7 +91,7 @@ public static class MongoHelper
     {
         if (obj is DisposeObject disposeObject)
         {
-            disposeObject.BeginInit();
+            disposeObject.OnSerialize();
         }
         return obj.ToBson();
     }
@@ -100,7 +100,7 @@ public static class MongoHelper
     {
         if (message is DisposeObject disposeObject)
         {
-            disposeObject.BeginInit();
+            disposeObject.OnSerialize();
         }
         
         using BsonBinaryWriter bsonWriter = new(stream, BsonBinaryWriterSettings.Defaults);
@@ -119,7 +119,7 @@ public static class MongoHelper
             object obj = BsonSerializer.Deserialize(bytes, type);
             if (obj is DisposeObject disposeObject)
             {
-                disposeObject.EndInit();
+                disposeObject.OnDeserialize();
             }
             return obj;
         }
@@ -138,7 +138,7 @@ public static class MongoHelper
             object obj = BsonSerializer.Deserialize(memoryStream, type);
             if (obj is DisposeObject disposeObject)
             {
-                disposeObject.EndInit();
+                disposeObject.OnDeserialize();
             }
             return obj;
         }
@@ -155,7 +155,7 @@ public static class MongoHelper
             object obj = BsonSerializer.Deserialize(stream, type);
             if (obj is DisposeObject disposeObject)
             {
-                disposeObject.EndInit();
+                disposeObject.OnDeserialize();
             }
             return obj;
         }
@@ -174,7 +174,7 @@ public static class MongoHelper
             T obj = (T)BsonSerializer.Deserialize(memoryStream, typeof(T));
             if (obj is DisposeObject disposeObject)
             {
-                disposeObject.EndInit();
+                disposeObject.OnDeserialize();
             }
             return obj;
         }

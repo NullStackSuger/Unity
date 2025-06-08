@@ -1,27 +1,55 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace ET;
 
 public static class Log
 {
+    private const int TraceLevel = 1;
+    private const int DebugLevel = 2;
+    private const int InfoLevel = 3;
+    private const int WarningLevel = 4;
+    
+    [Conditional("DEBUG")]
     public static void Trace(string message)
     {
+        if (Options.LogLevel > TraceLevel)
+        {
+            return;
+        }
+        
         message = Msg2LinkStackMsg(message);
         WriteLine(message, ConsoleColor.Gray);
     }
 
+    [Conditional("DEBUG")]
     public static void Debug(string message)
     {
+        if (Options.LogLevel > DebugLevel)
+        {
+            return;
+        }
+        
         WriteLine(message, ConsoleColor.Gray);
     }
-
+    
     public static void Info(string message)
     {
+        if (Options.LogLevel > InfoLevel)
+        {
+            return;
+        }
+        
         WriteLine(message, ConsoleColor.Gray);
     }
 
     public static void Warning(string message)
     {
+        if (Options.LogLevel > WarningLevel)
+        {
+            return;
+        }
+        
         WriteLine(message, ConsoleColor.Yellow);
     }
 

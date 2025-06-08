@@ -77,7 +77,7 @@ public class EventSystem: Singleton<EventSystem>, ISingletonAwake
                 continue;
             }
                 
-            aEvent.Handle(a).Coroutine();
+            aEvent.Handle(a).NoContext();
         }
     }
 }

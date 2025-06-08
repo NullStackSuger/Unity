@@ -62,3 +62,4 @@ D:\Rider\Project\Unity\Loader\bin\Debug\net8.0-windows\runtimes\linux-x64\native
 D:\Rider\Project\Unity\Loader\bin\Debug\net8.0-windows\runtimes\osx\native\libveldrid-spirv.dylib
 D:\Rider\Project\Unity\Loader\bin\Debug\net8.0-windows\runtimes\win-x64\native\libveldrid-spirv.dll
 D:\Rider\Project\Unity\Loader\bin\Debug\net8.0-windows\runtimes\win-x86\native\libveldrid-spirv.dll
+D:\Rider\Project\Unity\Loader\bin\Debug\net8.0-windows\BulletSharp.dll

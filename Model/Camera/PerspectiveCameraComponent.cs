@@ -15,7 +15,7 @@ public class PerspectiveCameraComponent : CameraComponent, IAwake<float, float, 
     {
         get
         {
-            float tanHalfFovY = MathF.Tan(this.fovY * Define.Deg2Rad);
+            float tanHalfFovY = MathF.Tan(this.fovY * MathHelper.Deg2Rad);
         
             Matrix4x4 mat = new Matrix4x4
             {

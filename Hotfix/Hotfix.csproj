@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>disable</Nullable>
         <RootNamespace>ET</RootNamespace>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,6 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="BulletSharp" Version="0.11.1" />
       <PackageReference Include="Veldrid.SDL2" Version="4.9.0" />
     </ItemGroup>
 

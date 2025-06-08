@@ -7,6 +7,7 @@
         <UseWindowsForms>true</UseWindowsForms>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>ET</RootNamespace>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -21,6 +22,10 @@
 
     <ItemGroup>
       <PackageReference Include="Veldrid.SDL2" Version="4.9.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Asset\Scene\" />
     </ItemGroup>
 
 </Project>

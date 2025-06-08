@@ -33,7 +33,7 @@ public abstract class Entity : DisposeObject
         this.InstanceId = 0;
     }
 
-    public override void BeginInit()
+    public override void OnSerialize()
     {
         // 触发Serialize事件
         if (this is ISerialize)
@@ -42,7 +42,7 @@ public abstract class Entity : DisposeObject
         }
     }
 
-    public override void EndInit()
+    public override void OnDeserialize()
     {
         // 触发DeSerialize事件
         if (this is IDeserialize)

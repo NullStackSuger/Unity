@@ -26,10 +26,13 @@ internal class CodeLoader : Singleton<CodeLoader>, ISingletonAwake
         assemblies[Define.Hotfix] = Assembly.Load(hotfixDllBytes, hotfixPdbBytes);
         assemblies[Define.HotfixView] = Assembly.Load(hotfixViewDllBytes, hotfixViewPdbBytes);*/
 
-        this.assemblies[Define.Model] = Assembly.LoadFrom(Define.ModelDll);
-        this.assemblies[Define.ModelView] = Assembly.LoadFrom(Define.ModelViewDll);
-        this.assemblies[Define.Hotfix] = Assembly.LoadFrom(Define.HotfixDll);
-        this.assemblies[Define.HotfixView] = Assembly.LoadFrom(Define.HotfixViewDll);
-        this.assemblies[Define.Editor] = Assembly.LoadFrom(Define.EditorDll);
+        this.assemblies["Model"] = Assembly.LoadFrom("Model.dll");
+        this.assemblies["ModelView"] = Assembly.LoadFrom("ModelView.dll");
+        this.assemblies["Hotfix"] = Assembly.LoadFrom("Hotfix.dll");
+        this.assemblies["HotfixView"] = Assembly.LoadFrom("HotfixView.dll");
+        if (Options.IsEditor)
+        {
+            this.assemblies["Editor"] = Assembly.LoadFrom("Editor.dll");
+        }
     }
 }

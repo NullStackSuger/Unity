@@ -1,8 +1,8 @@
 namespace ET;
 
-internal static class Helper
+public static class Helper
 {
-    internal static long GetLongHashCode(Type type)
+    public static long GetLongHashCode(this Type type)
     {
         return type.TypeHandle.Value.ToInt64();
     }

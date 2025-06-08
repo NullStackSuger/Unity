@@ -117,7 +117,7 @@ public class IdGenerator: Singleton<IdGenerator>, ISingletonAwake
             v = this.value;
         }
             
-        IdStruct idStruct = new(time, Define.Process, (uint)v);
+        IdStruct idStruct = new(time, (short)Options.Process, (uint)v);
         return idStruct.ToLong();
     }
         

@@ -119,6 +119,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "BulletSharp": {
+              "target": "Package",
+              "version": "[0.11.1, )"
+            },
             "Veldrid.SDL2": {
               "target": "Package",
               "version": "[4.9.0, )"
@@ -192,6 +196,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "BulletSharp": {
+              "target": "Package",
+              "version": "[0.11.1, )"
+            },
             "Veldrid.SDL2": {
               "target": "Package",
               "version": "[4.9.0, )"

@@ -49,11 +49,6 @@ public class TypeSystems
             return null;
         }
 
-        if (!oneTypeSystems.Map.TryGetValue(systemType, out List<SystemObject> systems))
-        {
-            return null;
-        }
-
-        return systems;
+        return oneTypeSystems.Map.GetValueOrDefault(systemType);
     }
 }

@@ -1,5 +1,3 @@
-using System.ComponentModel;
-
 namespace ET;
 
 public abstract class DisposeObject: Object, IDisposable
@@ -11,14 +9,14 @@ public abstract class DisposeObject: Object, IDisposable
     /// <summary>
     /// 序列化之前调用
     /// </summary>
-    public virtual void BeginInit()
+    public virtual void OnSerialize()
     {
     }
         
     /// <summary>
-    /// 序列化之后调用
+    /// 反序列化之后调用
     /// </summary>
-    public virtual void EndInit()
+    public virtual void OnDeserialize()
     {
     }
 }

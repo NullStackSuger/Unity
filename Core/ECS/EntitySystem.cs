@@ -128,6 +128,159 @@ public class EntitySystem : Singleton<EntitySystem>, ISingletonAwake
             }
         }
     }
+
+    public void CollisionEnter(Entity entity)
+    {
+        List<SystemObject> iCollisionEnterSystems = this.typeSystems.GetSystems(entity.GetType(), typeof (ICollisionEnterSystem));
+        if (iCollisionEnterSystems == null) return;
+
+        foreach (ICollisionEnterSystem collisionEnterSystem in iCollisionEnterSystems)
+        {
+            try
+            {
+                collisionEnterSystem.Run(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+        }
+    }
+    
+    public void CollisionEnter(Entity self, Entity a)
+    {
+        List<SystemObject> iCollisionSystems = this.typeSystems.GetSystems(self.GetType(), typeof (ICollisionEnterSystem<>));
+        if (iCollisionSystems == null) return;
+
+        foreach (SystemObject collisionSystem in iCollisionSystems)
+        {
+            foreach (Type type in collisionSystem.GetType().GetInterfaces())
+            {
+                if (!type.IsGenericType) continue;
+                if (type.GetGenericTypeDefinition() != typeof (ICollisionEnterSystem<>)) continue;
+                
+                Type aType = type.GetGenericArguments()[0];
+                if (a.GetType() != aType) continue;
+                
+                dynamic d = collisionSystem;
+                d.Run(self, a);
+            }
+        }
+    }
+    
+    public void CollisionStay(Entity entity)
+    {
+        List<SystemObject> iCollisionStaySystems = this.typeSystems.GetSystems(entity.GetType(), typeof (ICollisionStaySystem));
+        if (iCollisionStaySystems == null) return;
+
+        foreach (ICollisionStaySystem collisionStaySystem in iCollisionStaySystems)
+        {
+            try
+            {
+                collisionStaySystem.Run(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+        }
+    }
+
+    public void CollisionStay(Entity self, Entity a)
+    {
+        List<SystemObject> iCollisionSystems = this.typeSystems.GetSystems(self.GetType(), typeof (ICollisionStaySystem<>));
+        if (iCollisionSystems == null) return;
+
+        foreach (SystemObject collisionSystem in iCollisionSystems)
+        {
+            foreach (Type type in collisionSystem.GetType().GetInterfaces())
+            {
+                if (!type.IsGenericType) continue;
+                if (type.GetGenericTypeDefinition() != typeof (ICollisionStaySystem<>)) continue;
+                
+                Type aType = type.GetGenericArguments()[0];
+                if (a.GetType() != aType) continue;
+                
+                dynamic d = collisionSystem;
+                d.Run(self, a);
+            }
+        }
+    }
+    
+    public void CollisionExit(Entity entity)
+    {
+        List<SystemObject> iCollisionExitSystems = this.typeSystems.GetSystems(entity.GetType(), typeof (ICollisionExitSystem));
+        if (iCollisionExitSystems == null) return;
+
+        foreach (ICollisionExitSystem collisionExitSystem in iCollisionExitSystems)
+        {
+            try
+            {
+                collisionExitSystem.Run(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+        }
+    }
+    
+    public void CollisionExit(Entity self, Entity a)
+    {
+        List<SystemObject> iCollisionSystems = this.typeSystems.GetSystems(self.GetType(), typeof (ICollisionExitSystem<>));
+        if (iCollisionSystems == null) return;
+
+        foreach (SystemObject collisionSystem in iCollisionSystems)
+        {
+            foreach (Type type in collisionSystem.GetType().GetInterfaces())
+            {
+                if (!type.IsGenericType) continue;
+                if (type.GetGenericTypeDefinition() != typeof (ICollisionExitSystem<>)) continue;
+                
+                Type aType = type.GetGenericArguments()[0];
+                if (a.GetType() != aType) continue;
+                
+                dynamic d = collisionSystem;
+                d.Run(self, a);
+            }
+        }
+    }
+
+    public void CollisionTestBegin(Entity entity)
+    {
+        List<SystemObject> iCollisionTestBeginSystems = this.typeSystems.GetSystems(entity.GetType(), typeof (ICollisionTestBeginSystem));
+        if (iCollisionTestBeginSystems == null) return;
+
+        foreach (ICollisionTestBeginSystem collisionTestBeginSystem in iCollisionTestBeginSystems)
+        {
+            try
+            {
+                collisionTestBeginSystem.Run(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+        }
+    }
+    
+    public void CollisionTestEnd(Entity entity)
+    {
+        List<SystemObject> iCollisionTestEndSystems = this.typeSystems.GetSystems(entity.GetType(), typeof (ICollisionTestEndSystem));
+        if (iCollisionTestEndSystems == null) return;
+
+        foreach (ICollisionTestEndSystem collisionTestEndSystem in iCollisionTestEndSystems)
+        {
+            try
+            {
+                collisionTestEndSystem.Run(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+        }
+    }
     
     public void Serialize(Entity entity)
     {

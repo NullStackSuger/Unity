@@ -21,4 +21,11 @@ public abstract class Component : Entity
             this.Id = this.gameObject!.Id;
         }
     }
+
+    public override void OnDeserialize()
+    {
+        base.OnDeserialize();
+        
+        EntitySystem.Instance.RegisterSystem(this);
+    }
 }

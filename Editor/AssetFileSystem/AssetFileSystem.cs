@@ -2,6 +2,8 @@ namespace ET;
 
 public class AssetFileSystem : Singleton<AssetFileSystem>, ISingletonAwake
 {
+    public static readonly string AssetPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Asset"));
+    
     private readonly string[] followFile = [".prefab"];
     private readonly string[] ignoreFile = [".meta"];
     // (后缀名, paths)
@@ -16,7 +18,7 @@ public class AssetFileSystem : Singleton<AssetFileSystem>, ISingletonAwake
     public void Rebuild()
     {
         this.files.Clear();
-        this.root = Build(Define.AssetPath);
+        this.root = Build(AssetPath);
         
         AssetData Build(string path)
         {
@@ -103,7 +105,7 @@ public class AssetFileSystem : Singleton<AssetFileSystem>, ISingletonAwake
 
     public T Load<T>(string path)
     {
-        byte[] res = File.ReadAllBytes(Path.Combine(Define.AssetPath, path));
+        byte[] res = File.ReadAllBytes(Path.Combine(AssetPath, path));
         T t = MongoHelper.Deserialize<T>(res);
         return t;
     }
@@ -111,7 +113,7 @@ public class AssetFileSystem : Singleton<AssetFileSystem>, ISingletonAwake
     public void Save(string path, object t)
     {
         byte[] res = MongoHelper.Serialize(t);
-        File.WriteAllBytes(Path.Combine(Define.AssetPath, path), res);
+        File.WriteAllBytes(Path.Combine(AssetPath, path), res);
     }
     
     private class AssetData

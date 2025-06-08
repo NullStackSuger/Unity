@@ -4,6 +4,9 @@
     {
         private HashSet<Action> actions = new HashSet<Action>();
 
+        // 可以带一个数据
+        public object Context;
+
         public void Add(Action callback)
         {
             // 如果action是null，绝对不能添加,要抛异常，说明有协程泄漏
@@ -33,6 +36,7 @@
         private void Invoke()
         {
             HashSet<Action> runActions = this.actions;
+            
             this.actions = null;
             try
             {

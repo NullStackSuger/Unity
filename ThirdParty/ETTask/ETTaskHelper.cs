@@ -2,6 +2,18 @@
 {
     public static class ETTaskHelper
     {
+        public static async ETTask<T> GetContextAsync<T>() where T: class
+        {
+            ETTask<object> tcs = ETTask<object>.Create(true);
+            tcs.TaskType = TaskType.ContextTask;
+            object ret = await tcs;
+            if (ret == null)
+            {
+                return null;
+            }
+            return (T)ret;
+        }
+        
         public static bool IsCancel(this ETCancellationToken self)
         {
             if (self == null)
@@ -63,7 +75,7 @@
 
             foreach (ETTask task in tasks)
             {
-                coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+                coroutineBlocker.RunSubCoroutineAsync(task).NoContext();
             }
 
             await coroutineBlocker.WaitAsync();
@@ -80,7 +92,7 @@
 
             foreach (ETTask task in tasks)
             {
-                coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+                coroutineBlocker.RunSubCoroutineAsync(task).NoContext();
             }
 
             await coroutineBlocker.WaitAsync();
@@ -97,7 +109,7 @@
 
             foreach (ETTask task in tasks)
             {
-                coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+                coroutineBlocker.RunSubCoroutineAsync(task).NoContext();
             }
 
             await coroutineBlocker.WaitAsync();
@@ -114,7 +126,7 @@
 
             foreach (ETTask task in tasks)
             {
-                coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+                coroutineBlocker.RunSubCoroutineAsync(task).NoContext();
             }
 
             await coroutineBlocker.WaitAsync();

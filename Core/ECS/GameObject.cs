@@ -93,9 +93,9 @@ public sealed class GameObject : Entity
         base.Dispose();
     }
     
-    public override void BeginInit()
+    public override void OnSerialize()
     {
-        base.BeginInit();
+        base.OnSerialize();
 
         if (this.components != null)
         {
@@ -103,7 +103,7 @@ public sealed class GameObject : Entity
             foreach (Component component in this.components.Values)
             {
                 this.componentsDB.Add(component);
-                component.BeginInit();
+                component.OnSerialize();
             }
         }
 
@@ -113,23 +113,23 @@ public sealed class GameObject : Entity
             foreach (GameObject child in this.children.Values)
             {
                 this.childrenDB.Add(child);
-                child.BeginInit();
+                child.OnSerialize();
             }
         }
     }
 
-    public override void EndInit()
+    public override void OnDeserialize()
     {
-        base.EndInit();
+        base.OnDeserialize();
 
         if (this.componentsDB != null)
         {
             this.components ??= new SortedDictionary<long, Component>();
             foreach (Component component in this.componentsDB)
             {
-                this.components.Add(Helper.GetLongHashCode(component.GetType()), component);
+                this.components.Add(component.GetType().GetLongHashCode(), component);
                 component.GameObject = this;
-                component.EndInit();
+                component.OnDeserialize();
             }
             this.componentsDB.Clear();
             this.componentsDB = null;
@@ -141,7 +141,7 @@ public sealed class GameObject : Entity
             foreach (GameObject child in this.childrenDB)
             {
                 this.children.Add(child.Id, child);
-                child.EndInit();
+                child.OnDeserialize();
             }
             this.childrenDB.Clear();
             this.childrenDB = null;
@@ -221,7 +221,7 @@ public sealed class GameObject : Entity
     {
         if (this.IsDisposed) return null;
 
-        return this.components[Helper.GetLongHashCode(typeof(T))] as T;
+        return this.components[typeof(T).GetLongHashCode()] as T;
     }
     public bool GetComponent<T>(out T component) where T : Component
     {
@@ -231,7 +231,7 @@ public sealed class GameObject : Entity
             return false;
         }
 
-        if (this.components.TryGetValue(Helper.GetLongHashCode(typeof(T)), out var componentEntity))
+        if (this.components.TryGetValue(typeof(T).GetLongHashCode(), out var componentEntity))
         {
             component = componentEntity as T;
             return true;
@@ -242,11 +242,30 @@ public sealed class GameObject : Entity
             return false;
         }
     }
+    public Component GetComponent(Type type)
+    {
+        if (this.IsDisposed) return null;
+        if (!typeof(Component).IsAssignableFrom(type)) return null;
+
+        return this.components[type.GetLongHashCode()];
+    }
+    /// <summary>
+    /// 遍历寻找Component, 比较费性能
+    /// </summary>
+    public T GetComponentHard<T>() where T : Component
+    {
+        foreach (Component component in this.components.Values)
+        {
+            if (component.GetType().IsAbstract) continue;
+            if (typeof(T).IsAssignableFrom(component.GetType())) return (T)component;
+        }
+        return null;
+    }
     public void RemoveComponent<T>() where T : Component
     {
         if (this.IsDisposed) return;
         
-        if (!this.components.Remove(Helper.GetLongHashCode(typeof(T)), out Component component))
+        if (!this.components.Remove(typeof(T).GetLongHashCode(), out Component component))
         {
             return;
         }
@@ -257,7 +276,7 @@ public sealed class GameObject : Entity
     {
         if (this.IsDisposed) return;
 
-        if (!this.components.Remove(Helper.GetLongHashCode(component.GetType())))
+        if (!this.components.Remove(component.GetType().GetLongHashCode()))
         {
             return;
         }
@@ -268,14 +287,14 @@ public sealed class GameObject : Entity
     {
         if (this.IsDisposed) return null;
         
-        if (this.components.ContainsKey(Helper.GetLongHashCode(typeof(T))))
+        if (this.components.ContainsKey(typeof(T).GetLongHashCode()))
         {
             Log.Error($"entity already has component: {typeof(T).FullName}");
         }
         
         T component = new T();
         component.GameObject = this;
-        this.components.Add(Helper.GetLongHashCode(typeof(T)), component);
+        this.components.Add(typeof(T).GetLongHashCode(), component);
         EntitySystem.Instance.RegisterSystem(component);
         EntitySystem.Instance.Awake(component);
         if (isRunning) EntitySystem.Instance.Start(component);
@@ -286,14 +305,14 @@ public sealed class GameObject : Entity
     {
         if (this.IsDisposed) return null;
         
-        if (this.components.ContainsKey(Helper.GetLongHashCode(typeof(T))))
+        if (this.components.ContainsKey(typeof(T).GetLongHashCode()))
         {
             Log.Error($"entity already has component: {typeof(T).FullName}");
         }
         
         T component = new T();
         component.GameObject = this;
-        this.components.Add(Helper.GetLongHashCode(typeof(T)), component);
+        this.components.Add(typeof(T).GetLongHashCode(), component);
         EntitySystem.Instance.RegisterSystem(component);
         EntitySystem.Instance.Awake(component, a);
         if (isRunning) EntitySystem.Instance.Start(component);
@@ -304,14 +323,14 @@ public sealed class GameObject : Entity
     {
         if (this.IsDisposed) return null;
         
-        if (this.components.ContainsKey(Helper.GetLongHashCode(typeof(T))))
+        if (this.components.ContainsKey(typeof(T).GetLongHashCode()))
         {
             Log.Error($"entity already has component: {typeof(T).FullName}");
         }
         
         T component = new T();
         component.GameObject = this;
-        this.components.Add(Helper.GetLongHashCode(typeof(T)), component);
+        this.components.Add(typeof(T).GetLongHashCode(), component);
         EntitySystem.Instance.RegisterSystem(component);
         EntitySystem.Instance.Awake(component, a, b);
         if (isRunning) EntitySystem.Instance.Start(component);
@@ -322,14 +341,14 @@ public sealed class GameObject : Entity
     {
         if (this.IsDisposed) return null;
         
-        if (this.components.ContainsKey(Helper.GetLongHashCode(typeof(T))))
+        if (this.components.ContainsKey(typeof(T).GetLongHashCode()))
         {
             Log.Error($"entity already has component: {typeof(T).FullName}");
         }
         
         T component = new T();
         component.GameObject = this;
-        this.components.Add(Helper.GetLongHashCode(typeof(T)), component);
+        this.components.Add(typeof(T).GetLongHashCode(), component);
         EntitySystem.Instance.RegisterSystem(component);
         EntitySystem.Instance.Awake(component, a, b, c);
         if (isRunning) EntitySystem.Instance.Start(component);
@@ -340,14 +359,14 @@ public sealed class GameObject : Entity
     {
         if (this.IsDisposed) return null;
         
-        if (this.components.ContainsKey(Helper.GetLongHashCode(typeof(T))))
+        if (this.components.ContainsKey(typeof(T).GetLongHashCode()))
         {
             Log.Error($"entity already has component: {typeof(T).FullName}");
         }
         
         T component = new T();
         component.GameObject = this;
-        this.components.Add(Helper.GetLongHashCode(typeof(T)), component);
+        this.components.Add(typeof(T).GetLongHashCode(), component);
         EntitySystem.Instance.RegisterSystem(component);
         EntitySystem.Instance.Awake(component, a, b, c, d);
         if (isRunning) EntitySystem.Instance.Start(component);
@@ -358,14 +377,14 @@ public sealed class GameObject : Entity
     {
         if (this.IsDisposed) return null;
         
-        if (this.components.ContainsKey(Helper.GetLongHashCode(typeof(T))))
+        if (this.components.ContainsKey(typeof(T).GetLongHashCode()))
         {
             Log.Error($"entity already has component: {typeof(T).FullName}");
         }
         
         T component = new T();
         component.GameObject = this;
-        this.components.Add(Helper.GetLongHashCode(typeof(T)), component);
+        this.components.Add(typeof(T).GetLongHashCode(), component);
         EntitySystem.Instance.RegisterSystem(component);
         EntitySystem.Instance.Awake(component, a, b, c, d, e);
         if (isRunning) EntitySystem.Instance.Start(component);
