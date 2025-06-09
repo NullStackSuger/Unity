@@ -1,4 +1,4 @@
-namespace ET;
+/*namespace ET;
 
 public interface ICollisionTestEnd
 {
@@ -33,4 +33,4 @@ public abstract class CollisionTestEndSystem<T> : SystemObject, ICollisionTestEn
     }
 
     protected abstract void CollisionTestEnd(T self);
-}
+}*/

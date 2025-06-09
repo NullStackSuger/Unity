@@ -33,19 +33,10 @@ public static class Init
         plane.AddComponent<RigidBodyComponent, float>(0);
         #endregion
         
-        Log.Warning(ball.GetComponent<TransformComponent>().WorldPosition.ToString());
-        ball.GetComponent<TransformComponent>().WorldPosition = new Vector3(0, 0, 0);
-        Log.Warning(ball.GetComponent<TransformComponent>().WorldPosition.ToString());
-        Log.Warning(ball.GetComponent<TransformComponent>().position.ToString());
-        /*Log.Warning(scene.GetComponent<TransformComponent>().position.ToString());
-        Log.Warning(scene.GetComponent<TransformComponent>().Local.ToString());
-        Log.Warning(scene.GetComponent<TransformComponent>().WorldPosition.ToString());
-        Log.Warning(scene.GetComponent<TransformComponent>().World.ToString());
-        Log.Debug("----------------------------------------------------");
-        Log.Warning(ball.GetComponent<TransformComponent>().position.ToString());
-        Log.Warning(ball.GetComponent<TransformComponent>().Local.ToString());
-        Log.Warning(ball.GetComponent<TransformComponent>().WorldPosition.ToString());
-        Log.Warning(ball.GetComponent<TransformComponent>().World.ToString());*/
+        var trans = Scene.Instance.ActiveScene.GetComponent<TransformComponent>();
+        var phyScene = Scene.Instance.ActiveScene.GetComponent<PhysicsSceneComponent>();
+        CollisionSystem.Instance.CollisionEnter(trans);
+        CollisionSystem.Instance.CollisionTestBegin(trans);
         
         if (Options.IsEditor)
         {
@@ -108,5 +99,6 @@ public static class Init
         World.Instance.AddSingleton<Scene>()/*.ActiveScene = AssetFileSystem.Instance.Load<GameObject>(Path.Combine("Scene", "Scene0.prefab"))*/;
         World.Instance.AddSingleton<Input>();
         World.Instance.AddSingleton<Window>();
+        World.Instance.AddSingleton<CollisionSystem>();
     }
 }

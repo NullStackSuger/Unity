@@ -1,4 +1,4 @@
-namespace ET;
+/*namespace ET;
 
 public interface ICollisionExit
 {
@@ -68,4 +68,4 @@ public abstract class CollisionExitSystem<T, A> : SystemObject, ICollisionExitSy
     }
     
     protected abstract void CollisionExit(T self, A a);
-}
+}*/

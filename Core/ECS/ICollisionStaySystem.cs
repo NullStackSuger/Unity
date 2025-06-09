@@ -1,4 +1,4 @@
-namespace ET;
+/*namespace ET;
 
 public interface ICollisionStay
 {
@@ -68,4 +68,4 @@ public abstract class CollisionStaySystem<T, A> : SystemObject, ICollisionStaySy
     }
 
     protected abstract void CollisionStay(T self, A a);
-}
+}*/

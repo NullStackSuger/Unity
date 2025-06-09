@@ -3,7 +3,7 @@ namespace ET;
 public class EntitySystem : Singleton<EntitySystem>, ISingletonAwake
 {
     private readonly Queue<EntityRef<Entity>>[] queues = new Queue<EntityRef<Entity>>[InstanceQueueIndex.Max];
-    private readonly TypeSystems typeSystems = new TypeSystems(InstanceQueueIndex.Max);
+    public readonly TypeSystems typeSystems = new TypeSystems(InstanceQueueIndex.Max);
     
     public void Awake()
     {
@@ -129,7 +129,7 @@ public class EntitySystem : Singleton<EntitySystem>, ISingletonAwake
         }
     }
 
-    public void CollisionEnter(Entity entity)
+    /*public void CollisionEnter(Entity entity)
     {
         List<SystemObject> iCollisionEnterSystems = this.typeSystems.GetSystems(entity.GetType(), typeof (ICollisionEnterSystem));
         if (iCollisionEnterSystems == null) return;
@@ -280,7 +280,7 @@ public class EntitySystem : Singleton<EntitySystem>, ISingletonAwake
                 Log.Error(e);
             }
         }
-    }
+    }*/
     
     public void Serialize(Entity entity)
     {
